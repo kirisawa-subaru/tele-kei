@@ -1,0 +1,101 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# No release, publish or deploy steps. This workflow only answers "does the
+# tree still build and pass its tests on the platforms we claim to support".
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: test (${{ matrix.os }}, node ${{ matrix.node }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+        node: ['22', '24']
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+          cache: npm
+          cache-dependency-path: .vendor/telecodex/package-lock.json
+
+      # better-sqlite3 ships prebuilt binaries for every supported platform and
+      # has no install script, so this must not compile anything.
+      - name: Install dependencies
+        working-directory: .vendor/telecodex
+        run: npm ci
+
+      - name: Build
+        working-directory: .vendor/telecodex
+        run: npm run build
+
+      - name: Test
+        working-directory: .vendor/telecodex
+        run: npm test
+
+      - name: Tool tests
+        run: node --test tools/*.test.mjs
+
+      # The start scripts must find a Node without any repo-local install and
+      # without a login shell's PATH.
+      - name: Runtime resolution
+        run: |
+          bash -c 'TELECODEX_ROOT="$PWD"; . ./telecodex.runtime.sh; \
+            telecodex_prepare_runtime; "$TELECODEX_NODE_BIN" --version'
+
+  lint:
+    name: lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Shell syntax
+        run: |
+          status=0
+          for script in *.sh deploy/*.sh telecodex-bin/*; do
+            bash -n "$script" || status=1
+          done
+          exit $status
+
+      - name: JavaScript syntax
+        run: |
+          status=0
+          for file in smoke/*.js tools/*.mjs telegram-active/scripts/*.mjs; do
+            node --check "$file" || status=1
+          done
+          exit $status
+
+      - name: JSON syntax
+        run: |
+          status=0
+          for file in docs/setup-manifest.json profiles/example/profile.json; do
+            node -e 'JSON.parse(require("fs").readFileSync(process.argv[1],"utf8"))' "$file" \
+              || { echo "invalid JSON: $file"; status=1; }
+          done
+          exit $status
+
+      # Advisory for now: the tree has never been through shellcheck, so this
+      # reports without blocking. Drop continue-on-error once it is clean.
+      - name: shellcheck
+        continue-on-error: true
+        run: shellcheck --severity=warning *.sh deploy/*.sh telecodex-bin/*
+
+      - name: No credentials tracked
+        run: |
+          if git ls-files | grep -E '(^|/)\.telecodex\.env$|(^|/)\.env$'; then
+            echo "a credential file is tracked"
+            exit 1
+          fi
