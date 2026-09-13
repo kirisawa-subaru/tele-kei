@@ -1,24 +1,47 @@
 #!/usr/bin/env bash
+# Repo-local Codex CLI shim. Everything in this repository that needs `codex`
+# goes through here, so the version can never drift with the operator's PATH.
+#
+# Resolution order:
+#   1. TELECODEX_CODEX_BIN   — an existing Codex CLI you want to use as is
+#   2. .vendor/codex/        — the pin installed by ./telecodex.pin-codex.sh
+#
+# There is deliberately no fallback to `codex` on PATH: this file is itself
+# prepended to PATH as `codex`, and a PATH lookup would recurse.
 
 set -euo pipefail
 
-ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-PINNED_CODEX_VERSION="${TELECODEX_PINNED_CODEX_VERSION:-0.153.4}"
-PINNED_NODE_VERSION="${TELECODEX_PINNED_NODE_VERSION:-v24.14.1}"
-PIN_ROOT="${TELECODEX_PIN_ROOT:-$ROOT/.vendor/codex}"
-PINNED_NODE_BIN="${TELECODEX_PINNED_NODE_BIN:-$PIN_ROOT/node-${PINNED_NODE_VERSION}/bin/node}"
-PINNED_CODEX_JS="${TELECODEX_PINNED_CODEX_JS:-$PIN_ROOT/codex-cli-${PINNED_CODEX_VERSION}/bin/codex.js}"
+SELF="$0"
+while [ -L "$SELF" ]; do
+  link="$(readlink "$SELF")"
+  case "$link" in
+    /*) SELF="$link" ;;
+    *) SELF="$(dirname "$SELF")/$link" ;;
+  esac
+done
+ROOT="${TELECODEX_ROOT:-$(cd "$(dirname "$SELF")/.." && pwd)}"
 
-if [ ! -x "$PINNED_NODE_BIN" ]; then
-  echo "[telecodex-codex] missing pinned node binary: $PINNED_NODE_BIN" >&2
-  echo "[telecodex-codex] run ./telecodex.setup.sh to install the pinned Codex snapshot" >&2
+if [ -n "${TELECODEX_CODEX_BIN:-}" ]; then
+  if [ ! -x "$TELECODEX_CODEX_BIN" ]; then
+    echo "[telecodex-codex] TELECODEX_CODEX_BIN is not an executable: $TELECODEX_CODEX_BIN" >&2
+    exit 1
+  fi
+  exec "$TELECODEX_CODEX_BIN" "$@"
+fi
+
+TELECODEX_ROOT="$ROOT"
+# shellcheck source=../telecodex.runtime.sh
+. "$ROOT/telecodex.runtime.sh"
+
+if ! CODEX_JS="$(telecodex_pin_codex_js)"; then
+  echo "[telecodex-codex] no pinned Codex snapshot under $TELECODEX_PIN_ROOT" >&2
+  echo "[telecodex-codex] run ./telecodex.pin-codex.sh, or export TELECODEX_CODEX_BIN" >&2
   exit 1
 fi
 
-if [ ! -f "$PINNED_CODEX_JS" ]; then
-  echo "[telecodex-codex] missing pinned Codex entrypoint: $PINNED_CODEX_JS" >&2
-  echo "[telecodex-codex] run ./telecodex.setup.sh to install the pinned Codex snapshot" >&2
-  exit 1
+if ! NODE_BIN="$(telecodex_pin_node_bin)"; then
+  telecodex_resolve_node
+  NODE_BIN="$TELECODEX_NODE_BIN"
 fi
 
-exec "$PINNED_NODE_BIN" "$PINNED_CODEX_JS" "$@"
+exec "$NODE_BIN" "$CODEX_JS" "$@"
