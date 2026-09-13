@@ -1,0 +1,200 @@
+{
+  "schema": "telecodex.setup/1",
+  "description": "Machine-readable companion to SETUP.md. An agent can walk this top to bottom: probes, then secrets it must ask a human for, then steps, then checks.",
+  "prose": "SETUP.md",
+  "platforms": {
+    "supported": ["darwin", "linux", "wsl2"],
+    "unsupported": ["win32"],
+    "notes": "docs/platforms.md"
+  },
+  "agent_rules": [
+    "Never print TELEGRAM_BOT_TOKEN, or any value marked secret, into the transcript, a log, or a diff.",
+    "Never commit .telecodex.env, .telecodex/, or .vendor/codex/.",
+    "Never edit a start script to add a Node or Codex path; use the documented environment overrides.",
+    "Never widen CODEX_SANDBOX_MODE to unblock a failing command without asking the human first.",
+    "Never run npm install -g.",
+    "Ask the human to run `codex login` themselves; it opens a browser."
+  ],
+  "probes": [
+    {
+      "id": "platform",
+      "run": "uname -s -m",
+      "required": true,
+      "fail": "Native Windows is unsupported. Use WSL2."
+    },
+    {
+      "id": "wsl_filesystem",
+      "when": "wsl2",
+      "run": "pwd",
+      "required": true,
+      "reject_pattern": "^/mnt/[a-zA-Z]/",
+      "fail": "Checkout is on a Windows drive mount. DrvFs does not enforce the socket permission bits that are this system's only access control, and breaks SQLite WAL. Move to the Linux filesystem."
+    },
+    {
+      "id": "node",
+      "run": "bash -c 'TELECODEX_ROOT=$PWD . ./telecodex.runtime.sh; telecodex_prepare_runtime; \"$TELECODEX_NODE_BIN\" --version'",
+      "required": true,
+      "min_version": "22",
+      "fail": "Install Node >= 22, or set TELECODEX_NODE_BIN. Do not edit scripts."
+    },
+    {
+      "id": "npm",
+      "run": "npm --version",
+      "required": true,
+      "fail": "npm is needed by telecodex.setup.sh and by the Codex pin."
+    },
+    {
+      "id": "rsvg_convert",
+      "run": "command -v rsvg-convert",
+      "required": false,
+      "degrades_to": "Block-LaTeX images are skipped; text delivery is unaffected.",
+      "install_hint": {
+        "darwin": "brew install librsvg",
+        "debian": "sudo apt install librsvg2-bin",
+        "fedora": "sudo dnf install librsvg2-tools"
+      }
+    },
+    {
+      "id": "lsof",
+      "run": "command -v lsof",
+      "required": false,
+      "degrades_to": "Socket liveness uses a Node connect probe instead; Codex Desktop relay detection (macOS only) stays off."
+    }
+  ],
+  "secrets_from_human": [
+    {
+      "key": "TELEGRAM_BOT_TOKEN",
+      "secret": true,
+      "required": true,
+      "obtain": "The human messages @BotFather on Telegram with /newbot and pastes the token back.",
+      "validate": "^[0-9]{6,}:[A-Za-z0-9_-]{30,}$",
+      "file": ".telecodex.env",
+      "blast_radius": "Holding this token means reading every message the chat has ever carried and posting as the bot. It does not by itself allow code execution: from.id cannot be forged, so the allowlist still stands."
+    },
+    {
+      "key": "TELEGRAM_ALLOWED_USER_IDS",
+      "secret": false,
+      "required": true,
+      "obtain": "Numeric Telegram user ids, comma separated. The human gets theirs from @userinfobot. Usernames are not accepted.",
+      "validate": "^[0-9]+(,[0-9]+)*$",
+      "file": ".telecodex.env",
+      "blast_radius": "This list is the only authentication in the system. Everyone on it can do anything Codex can do on this host. Confirm every digit with the human."
+    }
+  ],
+  "env": [
+    {
+      "key": "CODEX_SANDBOX_MODE",
+      "default": "workspace-write",
+      "values": ["read-only", "workspace-write", "danger-full-access"],
+      "advice": "The only meaningful containment in the system. Do not widen it to unblock a command."
+    },
+    {
+      "key": "CODEX_APPROVAL_POLICY",
+      "default": "never",
+      "values": ["never", "on-request", "on-failure", "untrusted"],
+      "advice": "never is deliberate: the bridge has no approval UI, so any other value stalls turns instead of gating them."
+    },
+    {
+      "key": "CODEX_BACKEND",
+      "default": "app-server",
+      "advice": "app-server is the shared-writer architecture the start scripts and TELECODEX.md describe."
+    },
+    {
+      "key": "TELECODEX_BOT_KEY",
+      "default": "main",
+      "advice": "Lowercase. Also the profiles/<botKey>/ directory name and the worker argument."
+    },
+    {
+      "key": "TELEGRAM_GROUP_TRIGGER_MODE",
+      "default": "mention-or-reply",
+      "values": ["mention-or-reply", "all-authorized"],
+      "advice": "all-authorized is not a bypass; it runs after the allowlist check."
+    },
+    {
+      "key": "TELECODEX_NODE_BIN",
+      "default": null,
+      "advice": "Set only when automatic Node resolution picks the wrong interpreter."
+    },
+    {
+      "key": "TELECODEX_CODEX_BIN",
+      "default": null,
+      "advice": "Set to an existing Codex CLI to skip the repo-local pin. Must be exported for every TeleCodex process, so put it in .telecodex.env."
+    },
+    {
+      "key": "CODEX_API_KEY",
+      "secret": true,
+      "default": null,
+      "advice": "Only for API-key auth. The default is the host's existing `codex login` session."
+    }
+  ],
+  "steps": [
+    {
+      "id": "env_file",
+      "run": "cp .telecodex.env.example .telecodex.env && chmod 600 .telecodex.env",
+      "then": "Fill in the two values from secrets_from_human. Do not echo them.",
+      "verify": "test -f .telecodex.env && test \"$(stat -c '%a' .telecodex.env 2>/dev/null || stat -f '%Lp' .telecodex.env)\" = 600"
+    },
+    {
+      "id": "workspace",
+      "optional": true,
+      "run": "mkdir -p profiles/$BOT_KEY",
+      "then": "Write profiles/$BOT_KEY/profile.json with default_workspace set to the directory the human named. Without it, the bot's workspace is this repository. See profiles/example/.",
+      "verify": "test ! -e profiles/$BOT_KEY/profile.json || node -e 'JSON.parse(require(\"fs\").readFileSync(process.argv[1],\"utf8\"))' profiles/$BOT_KEY/profile.json"
+    },
+    {
+      "id": "install",
+      "run": "./telecodex.setup.sh",
+      "network": true,
+      "installs": [
+        ".vendor/telecodex/node_modules",
+        ".vendor/telecodex/dist",
+        ".vendor/codex/codex-cli-<version>",
+        "~/.local/bin/telegram-active (symlink)"
+      ],
+      "verify": "./telecodex-bin/codex --version"
+    },
+    {
+      "id": "codex_login",
+      "run": "./telecodex-bin/codex login status",
+      "on_failure": "Ask the human to run `codex login`. Do not drive the browser flow."
+    },
+    {
+      "id": "start",
+      "ordered": true,
+      "run": [
+        "./telecodex.app-server.start.sh",
+        "./telecodex.core.start.sh",
+        "./telecodex.worker.start.sh main"
+      ],
+      "then": "Three separate long-lived processes. Ask the human to message the bot; a reply means it works."
+    },
+    {
+      "id": "supervise",
+      "optional": true,
+      "after": "start",
+      "run": "./deploy/render.sh --bot-key main",
+      "then": "Renders systemd user units or launchd agents into .telecodex/deploy/ and prints the install commands. It does not install or load anything."
+    }
+  ],
+  "verify": [
+    {
+      "id": "build",
+      "run": "cd .vendor/telecodex && npm run build"
+    },
+    {
+      "id": "tests",
+      "run": "cd .vendor/telecodex && npm test"
+    },
+    {
+      "id": "no_secrets_tracked",
+      "run": "git status --porcelain --ignored | grep -E '\\.telecodex\\.env$|^\\?\\? \\.telecodex/' >/dev/null; git ls-files | grep -E '\\.telecodex\\.env$' && echo LEAK || true"
+    }
+  ],
+  "reference": {
+    "operations": "TELECODEX.md",
+    "security": "SECURITY.md",
+    "platforms": "docs/platforms.md",
+    "supervision": "deploy/README.md",
+    "profiles": "profiles/example/README.md"
+  }
+}
