@@ -1,0 +1,5 @@
+{
+  "default_workspace": "/absolute/path/to/the/project/this/bot/works/in",
+  "default_model": "gpt-5.4",
+  "dynamic_tools": ["telegram.send_file"]
+}

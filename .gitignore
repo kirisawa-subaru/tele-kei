@@ -22,3 +22,9 @@ node_modules/
 dist/
 test-results/
 playwright-report/
+
+# Bot profiles carry a machine-specific workspace path and the bot's developer
+# instructions. Only the documented example is tracked; delete these two lines
+# if you want your own profiles in version control.
+profiles/*
+!profiles/example/
