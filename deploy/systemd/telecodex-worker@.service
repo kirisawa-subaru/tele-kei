@@ -1,0 +1,25 @@
+[Unit]
+Description=TeleCodex Telegram worker (%i)
+Documentation=file://__TELECODEX_ROOT__/TELECODEX.md
+# One instance per bot key: telecodex-worker@main.service, @ops.service, ...
+# Each additional bot key needs its own .telecodex/instances/<botKey>/bot.env.
+Wants=telecodex-core.service
+After=telecodex-core.service
+# A supervisor loop is worse than a stopped unit: these scripts exit 0 when
+# something else already holds their socket, so cap the restart rate.
+StartLimitIntervalSec=60
+StartLimitBurst=5
+
+[Service]
+Type=simple
+WorkingDirectory=__TELECODEX_ROOT__
+ExecStart=__TELECODEX_ROOT__/telecodex.worker.start.sh %i
+Restart=always
+RestartSec=5
+KillMode=mixed
+TimeoutStopSec=20
+# The worker refuses to start while another live worker holds the same Telegram
+# token, so a slow restart is a stopped unit rather than a duplicate poller.
+
+[Install]
+WantedBy=default.target

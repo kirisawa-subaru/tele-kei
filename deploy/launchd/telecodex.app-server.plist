@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  TeleCodex shared Codex app-server. The single writer; Core and every worker
+  are useless without it. Its sandbox and approval settings are the effective
+  ceiling for everything that arrives from Telegram. See SECURITY.md.
+
+  Install as a user agent: ~/Library/LaunchAgents/__LABEL_PREFIX__.app-server.plist
+-->
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>__LABEL_PREFIX__.app-server</string>
+
+  <key>ProgramArguments</key>
+  <array>
+    <string>__TELECODEX_ROOT__/telecodex.app-server.start.sh</string>
+  </array>
+
+  <key>WorkingDirectory</key>
+  <string>__TELECODEX_ROOT__</string>
+
+  <key>RunAtLoad</key>
+  <true/>
+
+  <!-- Restart on a crash, but not when the script exits 0 because something
+       else already holds the socket. -->
+  <key>KeepAlive</key>
+  <dict>
+    <key>SuccessfulExit</key>
+    <false/>
+  </dict>
+
+  <key>ThrottleInterval</key>
+  <integer>10</integer>
+
+  <key>ProcessType</key>
+  <string>Background</string>
+
+  <key>StandardOutPath</key>
+  <string>__TELECODEX_ROOT__/.telecodex/logs/app-server.log</string>
+  <key>StandardErrorPath</key>
+  <string>__TELECODEX_ROOT__/.telecodex/logs/app-server.log</string>
+</dict>
+</plist>

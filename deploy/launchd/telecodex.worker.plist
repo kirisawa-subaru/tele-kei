@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  TeleCodex Telegram worker. One agent per bot key: render this template once
+  per bot, each with its own label and its own
+  .telecodex/instances/<botKey>/bot.env.
+
+  Install as a user agent: ~/Library/LaunchAgents/__LABEL_PREFIX__.worker.__BOT_KEY__.plist
+-->
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>__LABEL_PREFIX__.worker.__BOT_KEY__</string>
+
+  <key>ProgramArguments</key>
+  <array>
+    <string>__TELECODEX_ROOT__/telecodex.worker.start.sh</string>
+    <string>__BOT_KEY__</string>
+  </array>
+
+  <key>WorkingDirectory</key>
+  <string>__TELECODEX_ROOT__</string>
+
+  <key>RunAtLoad</key>
+  <true/>
+
+  <!-- The worker refuses to start while another live worker holds the same
+       Telegram token, so a throttled restart is a stopped unit rather than a
+       duplicate poller. -->
+  <key>KeepAlive</key>
+  <dict>
+    <key>SuccessfulExit</key>
+    <false/>
+  </dict>
+
+  <key>ThrottleInterval</key>
+  <integer>10</integer>
+
+  <key>ProcessType</key>
+  <string>Background</string>
+
+  <key>StandardOutPath</key>
+  <string>__TELECODEX_ROOT__/.telecodex/logs/worker-__BOT_KEY__.log</string>
+  <key>StandardErrorPath</key>
+  <string>__TELECODEX_ROOT__/.telecodex/logs/worker-__BOT_KEY__.log</string>
+</dict>
+</plist>

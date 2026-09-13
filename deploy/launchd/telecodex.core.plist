@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  TeleCodex Core Router: owns every Codex session and the
+  (botKey, chat/topic) -> thread ledger.
+
+  launchd has no ordering primitive. Core retries its connection to the
+  app-server, so loading it second is enough; load the app-server agent first
+  and give it a few seconds.
+
+  Install as a user agent: ~/Library/LaunchAgents/__LABEL_PREFIX__.core.plist
+-->
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>__LABEL_PREFIX__.core</string>
+
+  <key>ProgramArguments</key>
+  <array>
+    <string>__TELECODEX_ROOT__/telecodex.core.start.sh</string>
+  </array>
+
+  <key>WorkingDirectory</key>
+  <string>__TELECODEX_ROOT__</string>
+
+  <key>RunAtLoad</key>
+  <true/>
+
+  <key>KeepAlive</key>
+  <dict>
+    <key>SuccessfulExit</key>
+    <false/>
+  </dict>
+
+  <key>ThrottleInterval</key>
+  <integer>10</integer>
+
+  <key>ProcessType</key>
+  <string>Background</string>
+
+  <key>StandardOutPath</key>
+  <string>__TELECODEX_ROOT__/.telecodex/logs/core.log</string>
+  <key>StandardErrorPath</key>
+  <string>__TELECODEX_ROOT__/.telecodex/logs/core.log</string>
+</dict>
+</plist>

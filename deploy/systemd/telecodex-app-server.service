@@ -1,0 +1,22 @@
+[Unit]
+Description=TeleCodex shared Codex app-server
+Documentation=file://__TELECODEX_ROOT__/TELECODEX.md
+# The single writer. Core and every worker are useless without it.
+# A supervisor loop is worse than a stopped unit: these scripts exit 0 when
+# something else already holds their socket, so cap the restart rate.
+StartLimitIntervalSec=60
+StartLimitBurst=5
+
+[Service]
+Type=simple
+WorkingDirectory=__TELECODEX_ROOT__
+ExecStart=__TELECODEX_ROOT__/telecodex.app-server.start.sh
+Restart=always
+RestartSec=5
+KillMode=mixed
+TimeoutStopSec=20
+# This process's sandbox and approval settings are the effective ceiling for
+# everything that arrives from Telegram. See SECURITY.md.
+
+[Install]
+WantedBy=default.target

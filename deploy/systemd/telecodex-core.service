@@ -1,0 +1,23 @@
+[Unit]
+Description=TeleCodex Core Router
+Documentation=file://__TELECODEX_ROOT__/TELECODEX.md
+# Core owns every Codex session and the (botKey, chat/topic) -> thread ledger.
+# It must be reachable before any worker starts.
+Wants=telecodex-app-server.service
+After=telecodex-app-server.service
+# A supervisor loop is worse than a stopped unit: these scripts exit 0 when
+# something else already holds their socket, so cap the restart rate.
+StartLimitIntervalSec=60
+StartLimitBurst=5
+
+[Service]
+Type=simple
+WorkingDirectory=__TELECODEX_ROOT__
+ExecStart=__TELECODEX_ROOT__/telecodex.core.start.sh
+Restart=always
+RestartSec=5
+KillMode=mixed
+TimeoutStopSec=20
+
+[Install]
+WantedBy=default.target
