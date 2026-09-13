@@ -20,11 +20,17 @@ not supported and is not on the near-term roadmap; the reason is in
 | The Codex CLI | Installed into the checkout by `./telecodex.pin-codex.sh`, or supplied with `TELECODEX_CODEX_BIN`. |
 | A Codex login | `codex login status`. TeleCodex reuses your existing `~/.codex` session; `CODEX_API_KEY` is the alternative. |
 | A POSIX filesystem | Unix domain sockets with enforced permission bits, and working SQLite WAL. See `SECURITY.md`. |
-| `rsvg-convert` *(optional)* | Block-LaTeX rendering only. `brew install librsvg` / `apt install librsvg2-bin`. Missing means LaTeX images are skipped, not that turns fail. |
+| `rsvg-convert` *(optional at runtime)* | Block-LaTeX rendering. `brew install librsvg` / `apt install librsvg2-bin`. Missing means LaTeX images are skipped, not that turns fail — but two tests in `test/latex-renderer.test.ts` do shell out to it, so the suite needs it. |
 | `lsof` *(optional)* | Used to detect a live socket owner and, on macOS, to detect a Codex Desktop writer. Without it the start scripts fall back to a connect probe and Desktop relay stays off. |
 
-No native compilation is needed. The one native dependency, `better-sqlite3`,
-ships prebuilt binaries for every supported platform and has no install script.
+**No compiler, Python or make is needed** — but only because
+`.vendor/telecodex/.npmrc` sets `ignore-scripts=true`. The one native
+dependency, `better-sqlite3`, ships prebuilt binaries for every supported
+platform, yet it also ships a `binding.gyp` and declares no install script, and
+npm's documented response to that combination is to run `node-gyp rebuild`
+itself. node-gyp's configure step fails without Python long before it would
+discover the prebuild. Verified on a PATH with no `python3`: `npm ci` exits 1
+without the `.npmrc`, and succeeds with it.
 
 ## Runtime resolution
 

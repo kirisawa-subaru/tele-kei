@@ -28,8 +28,17 @@ jobs:
           cache: npm
           cache-dependency-path: .vendor/telecodex/package-lock.json
 
-      # better-sqlite3 ships prebuilt binaries for every supported platform and
-      # has no install script, so this must not compile anything.
+      # The LaTeX renderer tests shell out to rsvg-convert.
+      - name: Install librsvg (Linux)
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y librsvg2-bin
+
+      - name: Install librsvg (macOS)
+        if: runner.os == 'macOS'
+        run: brew install librsvg
+
+      # .vendor/telecodex/.npmrc sets ignore-scripts, so this must not invoke
+      # node-gyp: better-sqlite3 loads a prebuilt binary instead.
       - name: Install dependencies
         working-directory: .vendor/telecodex
         run: npm ci

@@ -106,8 +106,10 @@ systemd user units and launchd agents.
 cd .vendor/telecodex && npm ci && npm run build && npm test
 ```
 
-359 unit and integration tests. The `smoke/` suite is separate: it needs a
-logged-in Telegram Web session and a live bridge, so it is not part of CI.
+359 unit and integration tests. Two of them shell out to `rsvg-convert`, so
+install librsvg first if you want a clean run. The `smoke/` suite is separate:
+it needs a logged-in Telegram Web session and a live bridge, so it is not part
+of CI.
 
 ## Relationship to upstream
 

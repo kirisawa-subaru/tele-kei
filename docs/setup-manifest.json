@@ -47,7 +47,8 @@
       "id": "rsvg_convert",
       "run": "command -v rsvg-convert",
       "required": false,
-      "degrades_to": "Block-LaTeX images are skipped; text delivery is unaffected.",
+      "required_for_tests": true,
+      "degrades_to": "Block-LaTeX images are skipped; text delivery is unaffected. Two tests in test/latex-renderer.test.ts do fail without it.",
       "install_hint": {
         "darwin": "brew install librsvg",
         "debian": "sudo apt install librsvg2-bin",
