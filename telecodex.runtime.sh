@@ -33,10 +33,14 @@ TELECODEX_RUNTIME_LOADED=1
 TELECODEX_RUNTIME_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 : "${TELECODEX_ROOT:=$TELECODEX_RUNTIME_DIR}"
 export TELECODEX_ROOT
+# Functions read this, not TELECODEX_ROOT: `TELECODEX_ROOT=x . lib.sh` binds the
+# variable only for the duration of the `.` builtin, so a caller using that form
+# would leave every later function call with an empty root.
+TELECODEX_ROOT_DIR="$TELECODEX_ROOT"
 
 : "${TELECODEX_MIN_NODE_MAJOR:=22}"
 : "${TELECODEX_PINNED_CODEX_VERSION:=0.153.4}"
-: "${TELECODEX_PIN_ROOT:=$TELECODEX_ROOT/.vendor/codex}"
+: "${TELECODEX_PIN_ROOT:=$TELECODEX_ROOT_DIR/.vendor/codex}"
 
 telecodex_log() {
   printf '[telecodex] %s\n' "$*" >&2
@@ -79,9 +83,9 @@ telecodex_is_wsl() {
 telecodex_check_repo_location() {
   [ "${TELECODEX_ALLOW_DRVFS:-0}" = "1" ] && return 0
   telecodex_is_wsl || return 0
-  case "$TELECODEX_ROOT" in
+  case "$TELECODEX_ROOT_DIR" in
     /mnt/[a-z]/* | /mnt/[A-Z]/*)
-      telecodex_log "refusing to run from a Windows drive mount: $TELECODEX_ROOT"
+      telecodex_log "refusing to run from a Windows drive mount: $TELECODEX_ROOT_DIR"
       telecodex_log "DrvFs ignores the socket permission bits that are this system's"
       telecodex_log "only access control, and breaks SQLite WAL. Move the checkout to"
       telecodex_log "the Linux filesystem, e.g. ~/telecodex-oss. See docs/platforms.md."
@@ -107,8 +111,8 @@ telecodex_preferred_node_version() {
     printf '%s\n' "$TELECODEX_NODE_VERSION"
     return 0
   fi
-  if [ -f "$TELECODEX_ROOT/.nvmrc" ]; then
-    tr -d ' \t\r' <"$TELECODEX_ROOT/.nvmrc" | grep -v '^$' | head -n 1
+  if [ -f "$TELECODEX_ROOT_DIR/.nvmrc" ]; then
+    tr -d ' \t\r' <"$TELECODEX_ROOT_DIR/.nvmrc" | grep -v '^$' | head -n 1
   fi
 }
 
@@ -236,7 +240,7 @@ telecodex_prepare_runtime() {
   telecodex_resolve_node
   # Last, so the repo-local Codex shim always wins over anything else named
   # `codex` on PATH.
-  telecodex_path_prepend "$TELECODEX_ROOT/telecodex-bin"
+  telecodex_path_prepend "$TELECODEX_ROOT_DIR/telecodex-bin"
 }
 
 telecodex_pin_dir() {

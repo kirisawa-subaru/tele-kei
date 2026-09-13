@@ -21,6 +21,7 @@ Why this shape:
 
 - `telecodex-bin/codex` — repo-local shim that always launches the pinned Codex snapshot
 - `telecodex-bin/telecodex-remote` — desktop entry: joins the shared app-server as a remote frontend (see "Desktop entry")
+- `telecodex.runtime.sh` — sourced by every entrypoint; resolves Node and the pinned Codex without hardcoding a host layout (`docs/platforms.md`)
 - `telecodex.pin-codex.sh` — refresh only the frozen Codex snapshot used by services
 - `telecodex.setup.sh` — install dependencies, build tracked source, refresh the Codex pin
 - `telecodex.app-server.start.sh` — start the single shared Codex writer
@@ -33,6 +34,8 @@ Why this shape:
 - `.telecodex/state.sqlite` — WAL state ledger, durable turn journal, and Telegram outbox (gitignored)
 - `.telecodex/instances/<botKey>/bot.env` — per-bot untracked token/config override
 - `telegram-active/` — explicit Codex CLI trigger for handing the current thread to Telegram
+- `profiles/<botKey>/` — per-bot workspace, model, developer instructions, dynamic tools (`profiles/example/`)
+- `deploy/` — parameterised systemd and launchd templates
 
 ## Setup
 
@@ -55,11 +58,14 @@ Why this shape:
    not block text delivery. Override the converter path with
    `RSVG_CONVERT_PATH` when it is not installed in the standard Homebrew path.
 
-   The setup step also snapshots the stable Codex CLI (pinned at `0.153.4`)
-   out of NVM into `.vendor/codex/`. The supervised services never resolve
-   `codex` from Homebrew or the mutable npm-global path; both wrappers prepend
-   `telecodex-bin/` so service restarts stay on the frozen snapshot until an
-   operator reruns setup with a different pinned source.
+   The setup step also installs the stable Codex CLI (pinned at `0.153.4`) into
+   `.vendor/codex/`, from npm by default. The supervised services never resolve
+   `codex` from a mutable PATH; every entrypoint prepends `telecodex-bin/`, so a
+   background upgrade of a globally installed CLI cannot change the protocol the
+   bridge speaks. Two alternatives to the download:
+   `TELECODEX_PINNED_CODEX_SOURCE_PACKAGE` copies an existing local install, and
+   `TELECODEX_CODEX_BIN` skips the pin entirely — put that one in
+   `.telecodex.env` so every process sees it.
 
    The `/rewind` implementation uses deprecated `thread/rollback`. Codex
    0.153.4 creates paginated threads by default, which reject that method, so
@@ -230,9 +236,11 @@ long-lived units, all running from the repo root:
 <repo>/telecodex.worker.start.sh main       # one unit per bot key
 ```
 
-Any supervisor works. On macOS these are three launchd agents; on Linux, three
-systemd user units. Use a label prefix you own, for example
-`com.example.telecodex.app-server`.
+Any supervisor works. `deploy/` ships parameterised templates for both — three
+launchd agents on macOS, three systemd user units on Linux and WSL2 — plus
+`deploy/render.sh`, which substitutes this checkout's path and prints the
+install commands without running them. `deploy/README.md` covers lingering,
+WSL2's `[boot] systemd=true` requirement, and the restart semantics.
 
 A supervisor's own `status` verb can lag. Ask the platform for liveness
 instead:
@@ -244,17 +252,22 @@ launchctl print "gui/$(id -u)/<your-label-prefix>.app-server"
 systemctl --user status telecodex-app-server
 ```
 
-### Native addons must match the pinned runtime Node
+### Keep one Node across setup and runtime
 
-`telecodex.start.sh` and `telecodex.app-server.start.sh` put
-`$HOME/.nvm/versions/node/v24.14.1/bin` ahead of `/opt/homebrew/bin`, so the
-services run the frozen nvm Node 24.14.1. History (2026-08-29): the order was
-originally reversed, so the pin was dead and the services silently ran
-Homebrew node (25.9.0) for months; the TCM deploy rebuilt `better-sqlite3`
-for the pinned version and thereby broke the live bridge, which the browser
-walkthrough caught. Any `npm install` / `npm ci` / `npm rebuild` executed
-under a different Node recompiles native addons for the wrong
-NODE_MODULE_VERSION. `codex-state.ts` logs a database open failure once to
+Every entrypoint resolves Node through `telecodex.runtime.sh`, so setup and the
+services agree by construction; `docs/platforms.md` documents the search order
+and the `TELECODEX_NODE_*` overrides. This matters because of native addons.
+
+History (2026-08-29): the scripts used to prepend a fixed PATH with a Homebrew
+directory ahead of the intended pin, so the pin was dead and the services
+silently ran a different Node for months. A deploy then rebuilt
+`better-sqlite3` for the intended version and broke the live bridge. Any
+`npm install` / `npm ci` / `npm rebuild` run under a different Node than the
+services use recompiles native addons for the wrong NODE_MODULE_VERSION.
+(`better-sqlite3` now ships prebuilt binaries for every supported platform, so
+this is a smaller trap than it was, but it is still a trap.)
+
+`codex-state.ts` logs a database open failure once to
 stderr and keeps compatibility callers on their existing empty/null fallback;
 the explicit `/view` and `/attach` commands use checked queries and reply
 `会话列表暂不可用，请稍后重试。` when the database is unavailable, rather than
@@ -264,10 +277,12 @@ After touching `.vendor/telecodex/node_modules` in any way, rebuild and
 verify under the pinned runtime before restarting the services:
 
 ```bash
-export PATH="$HOME/.nvm/versions/node/v24.14.1/bin:$PATH"
+# Resolve the same Node the services will use, then stay on it.
+eval "$(bash -c 'TELECODEX_ROOT=$PWD . ./telecodex.runtime.sh; telecodex_prepare_runtime; \
+  printf "PATH=%q\n" "$PATH"')"
 cd .vendor/telecodex && npm rebuild better-sqlite3 && npm run build
 node --input-type=module -e \
-  '"'"'const m = await import("./dist/codex-state.js"); console.log(m.listThreads(3).length);'"'"' \
+  'const m = await import("./dist/codex-state.js"); console.log(m.listThreads(3).length);' \
   # must print > 0 once the host has Codex history
 ```
 

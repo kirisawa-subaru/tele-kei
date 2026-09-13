@@ -88,6 +88,18 @@ This also means the current design assumes a POSIX filesystem that enforces
 socket permissions. Do not port it to a platform where `chmod` on a socket is a
 no-op without designing an authentication layer first.
 
+**On WSL2 this is not theoretical.** A checkout under `/mnt/c/...` — or any
+`/mnt/<drive>` path — lives on DrvFs, which does not enforce Unix permission
+bits. The `0700` run directory and the `0600` sockets are cosmetic there, which
+means the only access control in the system is gone and the inject socket is
+reachable from the Windows side. DrvFs also breaks SQLite WAL, so the durable
+turn journal and the Telegram outbox are unreliable on top of that. Keep the
+repository and `.telecodex/` on the Linux filesystem; the start scripts refuse
+to run from a drive mount. `docs/platforms.md` has the details.
+
+The same reasoning rules out network shares and cloud-synced folders
+(OneDrive, Dropbox, iCloud Drive) for `.telecodex/`.
+
 ## What TeleCodex deliberately does not do
 
 - No `/sh`, `/exec`, or any command that hands a raw shell to the chat window.
