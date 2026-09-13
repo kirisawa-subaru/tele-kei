@@ -1,0 +1,7 @@
+interface:
+  display_name: "Telegram Active Thread"
+  short_description: "Bind this Codex chat to the Telegram bridge"
+  default_prompt: "Use $telegram-active to make this Codex chat the active Telegram thread."
+
+policy:
+  allow_implicit_invocation: false

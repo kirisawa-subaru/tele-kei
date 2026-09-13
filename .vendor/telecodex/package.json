@@ -1,0 +1,48 @@
+{
+  "name": "telecodex",
+  "version": "0.1.0",
+  "description": "Telegram bridge for the OpenAI Codex CLI SDK",
+  "license": "MIT",
+  "author": "Benedict Evert",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/benedict2310/telecodex"
+  },
+  "keywords": [
+    "telegram",
+    "codex",
+    "openai",
+    "bot",
+    "cli",
+    "bridge"
+  ],
+  "type": "module",
+  "scripts": {
+    "dev": "tsx src/index.ts",
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "start:core": "node dist/core-index.js",
+    "start:worker": "node dist/worker-index.js",
+    "test": "vitest run"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "dependencies": {
+    "@grammyjs/auto-retry": "^2.0.2",
+    "@openai/codex-sdk": "0.147.0",
+    "better-sqlite3": "^13.0.0",
+    "grammy": "^1.41.1",
+    "https-proxy-agent": "^7.0.6",
+    "mathjax": "^4.1.3",
+    "ws": "^8.21.3"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.0",
+    "@types/node": "^25.5.0",
+    "@types/ws": "^8.18.1",
+    "tsx": "^4.21.0",
+    "typescript": "^5.9.3",
+    "vitest": "^3.2.4"
+  }
+}

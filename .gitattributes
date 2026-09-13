@@ -1,0 +1,15 @@
+* text=auto
+
+# Shell scripts must stay LF on every platform. On Windows checkouts
+# core.autocrlf=true is the default, and a CRLF shebang line makes bash fail
+# with `$'\r': command not found`.
+*.sh text eol=lf
+telecodex-bin/codex text eol=lf
+telecodex-bin/telecodex-remote text eol=lf
+
+*.png binary
+*.jpg binary
+*.ico binary
+
+.vendor/telecodex/*.md whitespace=-blank-at-eol,-blank-at-eof
+.vendor/telecodex/**/*.md whitespace=-blank-at-eol,-blank-at-eof

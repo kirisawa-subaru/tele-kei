@@ -1,0 +1,13 @@
+{
+  "name": "codex-bot-smoke",
+  "private": true,
+  "scripts": {
+    "login": "node login.js",
+    "smoke": "playwright test",
+    "smoke:telemood": "playwright test telemood.spec.js",
+    "create-bot": "node create-bot.js"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.49.0"
+  }
+}

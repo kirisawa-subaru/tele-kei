@@ -1,0 +1,24 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+PINNED_CODEX_VERSION="${TELECODEX_PINNED_CODEX_VERSION:-0.153.4}"
+PINNED_NODE_VERSION="${TELECODEX_PINNED_NODE_VERSION:-v24.14.1}"
+PIN_ROOT="${TELECODEX_PIN_ROOT:-$ROOT/.vendor/codex}"
+PINNED_NODE_BIN="${TELECODEX_PINNED_NODE_BIN:-$PIN_ROOT/node-${PINNED_NODE_VERSION}/bin/node}"
+PINNED_CODEX_JS="${TELECODEX_PINNED_CODEX_JS:-$PIN_ROOT/codex-cli-${PINNED_CODEX_VERSION}/bin/codex.js}"
+
+if [ ! -x "$PINNED_NODE_BIN" ]; then
+  echo "[telecodex-codex] missing pinned node binary: $PINNED_NODE_BIN" >&2
+  echo "[telecodex-codex] run ./telecodex.setup.sh to install the pinned Codex snapshot" >&2
+  exit 1
+fi
+
+if [ ! -f "$PINNED_CODEX_JS" ]; then
+  echo "[telecodex-codex] missing pinned Codex entrypoint: $PINNED_CODEX_JS" >&2
+  echo "[telecodex-codex] run ./telecodex.setup.sh to install the pinned Codex snapshot" >&2
+  exit 1
+fi
+
+exec "$PINNED_NODE_BIN" "$PINNED_CODEX_JS" "$@"

@@ -1,0 +1,5 @@
+node_modules/
+.profile/
+artifacts/
+test-results/
+playwright-report/

@@ -1,0 +1,24 @@
+.DS_Store
+
+# Runtime state: sockets, SQLite ledger, per-instance credentials, logs.
+.telecodex/
+
+# Credentials. Only *.example files are ever tracked.
+.env
+.env.*
+!.env.example
+.telecodex.env
+.telecodex.env.*
+!.telecodex.env.example
+*.env
+!*.env.example
+
+# Pinned Codex snapshot lives under .vendor/ and is never committed;
+# .vendor/telecodex is the tracked fork source.
+.vendor/*
+!.vendor/telecodex/
+
+node_modules/
+dist/
+test-results/
+playwright-report/

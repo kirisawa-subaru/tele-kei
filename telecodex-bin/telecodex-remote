@@ -1,0 +1,35 @@
+#!/usr/bin/env bash
+# Desktop entry to the shared TeleCodex app-server: join as a remote frontend,
+# never a second writer. Runs the pinned Codex snapshot so client and server
+# versions stay locked together.
+#
+#   telecodex-remote resume          pick any session (search across the shared store)
+#   telecodex-remote resume --last   continue the most recent session
+#   telecodex-remote resume --all    include sessions outside this workspace
+#   telecodex-remote                 start a new session in the canonical workspace
+#
+# Picker footer (Codex 0.153.4): Esc starts NEW; Ctrl-C exits cleanly.
+#
+# Symlink this onto PATH. TELECODEX_ROOT overrides the repository location when
+# the symlink does not resolve back into the repo.
+set -euo pipefail
+
+SELF="$0"
+while [ -L "$SELF" ]; do
+  link="$(readlink "$SELF")"
+  case "$link" in
+    /*) SELF="$link" ;;
+    *) SELF="$(dirname "$SELF")/$link" ;;
+  esac
+done
+ROOT="${TELECODEX_ROOT:-$(cd "$(dirname "$SELF")/.." && pwd)}"
+SOCK="${CODEX_APP_SERVER_SOCKET:-$ROOT/.telecodex/run/app-server.sock}"
+
+if [ ! -S "$SOCK" ]; then
+  echo "telecodex-remote: shared app-server socket missing at $SOCK" >&2
+  echo "telecodex-remote: start it with $ROOT/telecodex.app-server.start.sh" >&2
+  exit 1
+fi
+
+cd "$ROOT"
+exec "$ROOT/telecodex-bin/codex" --remote "unix://$SOCK" "$@"

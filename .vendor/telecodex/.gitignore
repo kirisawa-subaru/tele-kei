@@ -1,0 +1,31 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+
+# Environment / secrets
+.env*
+!.env.example
+
+# Runtime state
+.telecodex/
+telecodex.log
+
+# Runtime workspace (Docker mount)
+workspace/
+
+# Agent tooling (local dev only)
+agent-tools/
+
+# macOS
+.DS_Store
+
+# Editors
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Test coverage
+coverage/
