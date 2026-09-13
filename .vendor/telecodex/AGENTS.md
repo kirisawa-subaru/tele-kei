@@ -12,7 +12,6 @@ Use Node.js 20+.
 - `npm run dev` starts TeleCodex with `tsx` against `src/index.ts`.
 - `npm run build` runs `tsc` and emits production files to `dist/`.
 - `npm test` runs the Vitest suite once.
-- `docker compose up --build` starts the bot in the provided container setup.
 
 ## Coding Style & Naming Conventions
 This repository uses strict TypeScript with ES modules. Follow the existing style: 2-space indentation, double quotes, semicolons, and explicit `.js` import specifiers in TypeScript source. Prefer small, focused modules and descriptive camelCase identifiers; use PascalCase for exported types and classes, such as `TeleCodexConfig` and `CodexSessionService`.
@@ -25,7 +24,7 @@ Tests use Vitest with globals enabled and the pattern `test/**/*.test.ts`. Add o
 ## Commit & Pull Request Guidelines
 The current history uses short, descriptive commit subjects, for example: `Initial TeleCodex implementation - Telegram bridge for OpenAI Codex CLI SDK`. Keep commit messages imperative, concise, and scoped to one logical change.
 
-PRs should explain the behavior change, note any config or Docker impact, and link related issues when present. Include screenshots or Telegram message samples for UI or formatting changes.
+PRs should explain the behavior change, note any config impact, and link related issues when present. Include screenshots or Telegram message samples for UI or formatting changes.
 
 ## Security & Configuration Tips
 Do not commit `.env`, API keys, or Telegram tokens. Restrict `TELEGRAM_ALLOWED_USER_IDS` to trusted users, and default to `CODEX_SANDBOX_MODE=workspace-write` unless broader access is required.

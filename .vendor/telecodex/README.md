@@ -17,7 +17,6 @@ TeleCodex is a Telegram bridge for the OpenAI Codex CLI SDK. It keeps a Codex th
 - **Read-only status** — `/status` shows the current thread, workspace, model, and host auth state
 - **Verified handback flow** — `/handback` releases the writer for Codex Desktop or CLI, then prints a ready-to-run `codex resume <id>` command (copied to clipboard on macOS)
 - **User allowlist** — only configured Telegram user IDs can interact with the bot
-- **Docker-friendly** — workspace auto-detected (`/workspace` in containers, `cwd` otherwise)
 
 ## Prerequisites
 
@@ -178,23 +177,9 @@ TeleCodex/
 │   └── format.ts          — Markdown → Telegram HTML conversion
 ├── test/                  — vitest suite
 ├── .env.example
-├── Dockerfile
-├── docker-compose.yml
 ├── tsconfig.json
 └── vitest.config.ts
 ```
-
-## Docker
-
-```bash
-docker compose up --build
-```
-
-The compose file:
-- loads environment from `.env`
-- mounts `~/.codex` for auth state and persisted threads
-- mounts `./workspace` as `/workspace`
-- runs as a non-root user
 
 ## Development
 
