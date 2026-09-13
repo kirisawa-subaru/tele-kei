@@ -4,17 +4,11 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")" && pwd)"
 
-export NVM_DIR="${NVM_DIR:-$HOME/.nvm}"
-if [ -s "$NVM_DIR/nvm.sh" ]; then
-  # shellcheck disable=SC1091
-  . "$NVM_DIR/nvm.sh"
-fi
-export PATH="$ROOT/telecodex-bin:/opt/homebrew/bin:$HOME/.nvm/versions/node/v24.14.1/bin:$PATH"
+TELECODEX_ROOT="$ROOT"
+# shellcheck source=telecodex.runtime.sh
+. "$ROOT/telecodex.runtime.sh"
+telecodex_prepare_runtime
 
-if ! command -v node >/dev/null 2>&1; then
-  echo "[codex-analytics] node is not available" >&2
-  exit 1
-fi
 if [ ! -f "$ROOT/tools/codex_rate_limit_snapshot.mjs" ]; then
   echo "[codex-analytics] rate-limit collector script is missing" >&2
   exit 1
@@ -34,5 +28,5 @@ fi
 export CODEX_BIN
 
 cd "$ROOT"
-exec node tools/codex_rate_limit_snapshot.mjs "$@"
+exec "$TELECODEX_NODE_BIN" tools/codex_rate_limit_snapshot.mjs "$@"
 

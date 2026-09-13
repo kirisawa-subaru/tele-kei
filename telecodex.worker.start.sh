@@ -16,7 +16,12 @@ if [[ ! "$BOT_KEY" =~ ^[a-z][a-z0-9_-]{0,31}$ ]]; then
   exit 2
 fi
 
-export PATH="$ROOT/telecodex-bin:$HOME/.nvm/versions/node/v24.14.1/bin:/opt/homebrew/bin:$PATH"
+TELECODEX_ROOT="$ROOT"
+# shellcheck source=telecodex.runtime.sh
+. "$ROOT/telecodex.runtime.sh"
+telecodex_check_repo_location
+telecodex_prepare_runtime
+
 if [ ! -f "$SOURCE_DIR/dist/worker-index.js" ]; then
   echo "[telecodex-worker:$BOT_KEY] missing built runtime; run ./telecodex.setup.sh" >&2
   exit 1
@@ -56,4 +61,4 @@ export ENABLE_TELEGRAM_REACTIONS="${ENABLE_TELEGRAM_REACTIONS:-false}"
 unset CODEX_APP_SERVER_SOCKET
 
 cd "$ROOT"
-exec node "$SOURCE_DIR/dist/worker-index.js"
+exec "$TELECODEX_NODE_BIN" "$SOURCE_DIR/dist/worker-index.js"

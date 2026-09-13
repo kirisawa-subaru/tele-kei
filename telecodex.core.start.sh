@@ -8,7 +8,12 @@ ENV_FILE="$ROOT/.telecodex.env"
 CODEX_WRAPPER="$ROOT/telecodex-bin/codex"
 RUN_DIR="$ROOT/.telecodex/run"
 
-export PATH="$ROOT/telecodex-bin:$HOME/.nvm/versions/node/v24.14.1/bin:/opt/homebrew/bin:$PATH"
+TELECODEX_ROOT="$ROOT"
+# shellcheck source=telecodex.runtime.sh
+. "$ROOT/telecodex.runtime.sh"
+telecodex_check_repo_location
+telecodex_prepare_runtime
+
 if [ ! -f "$SOURCE_DIR/dist/core-index.js" ]; then
   echo "[telecodex-core] missing built runtime; run ./telecodex.setup.sh" >&2
   exit 1
@@ -38,23 +43,14 @@ export CODEX_APPROVAL_POLICY="${CODEX_APPROVAL_POLICY:-on-request}"
 # Node cannot bind over them, so remove only unowned sockets inside our private
 # run directory. A held socket means another core is alive; leave it untouched.
 for socket_path in "$TELECODEX_CORE_SOCKET" "$TELECODEX_CONTROL_SOCKET"; do
-  if [ ! -S "$socket_path" ]; then
-    continue
-  fi
-  if lsof -t -- "$socket_path" >/dev/null 2>&1; then
-    echo "[telecodex-core] already listening at $socket_path" >&2
+  set +e
+  telecodex_clear_stale_socket telecodex-core "$socket_path" "$RUN_DIR"
+  socket_status=$?
+  set -e
+  if [ "$socket_status" -eq 2 ]; then
     exit 0
   fi
-  case "$socket_path" in
-    "$RUN_DIR"/*.sock) ;;
-    *)
-      echo "[telecodex-core] stale socket outside managed run dir: $socket_path" >&2
-      exit 1
-      ;;
-  esac
-  rm -f -- "$socket_path"
-  echo "[telecodex-core] removed stale socket $socket_path" >&2
 done
 
 cd "$ROOT"
-exec node "$SOURCE_DIR/dist/core-index.js"
+exec "$TELECODEX_NODE_BIN" "$SOURCE_DIR/dist/core-index.js"

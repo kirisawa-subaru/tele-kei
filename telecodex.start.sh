@@ -13,13 +13,12 @@ PID_DIR="$ROOT/.telecodex/run"
 PID_FILE="$PID_DIR/start.pid"
 CODEX_WRAPPER="$ROOT/telecodex-bin/codex"
 
-export NVM_DIR="${NVM_DIR:-$HOME/.nvm}"
-if [ -s "$NVM_DIR/nvm.sh" ]; then
-  # shellcheck disable=SC1091
-  . "$NVM_DIR/nvm.sh"
-fi
-export PATH="$ROOT/telecodex-bin:$HOME/.nvm/versions/node/v24.14.1/bin:/opt/homebrew/bin:$PATH"
-echo "runtime: node=$(command -v node) $(node --version 2>/dev/null || echo missing)"
+TELECODEX_ROOT="$ROOT"
+# shellcheck source=telecodex.runtime.sh
+. "$ROOT/telecodex.runtime.sh"
+telecodex_check_repo_location
+telecodex_prepare_runtime
+echo "runtime: node=$TELECODEX_NODE_BIN $("$TELECODEX_NODE_BIN" --version)"
 
 if [ ! -f "$SOURCE_DIR/dist/index.js" ]; then
   echo "[telecodex] missing built TeleCodex runtime at $SOURCE_DIR/dist/index.js" >&2
@@ -78,7 +77,7 @@ export CODEX_APP_SERVER_SOCKET="${CODEX_APP_SERVER_SOCKET:-$PID_DIR/app-server.s
 export CODEX_THREAD_IDLE_TIMEOUT_MS="${CODEX_THREAD_IDLE_TIMEOUT_MS:-3600000}"
 
 cd "$ROOT"
-CMD=(node "$SOURCE_DIR/dist/index.js")
+CMD=("$TELECODEX_NODE_BIN" "$SOURCE_DIR/dist/index.js")
 
 if [ -t 0 ] && [ -t 1 ]; then
   exec "${CMD[@]}" "$@"

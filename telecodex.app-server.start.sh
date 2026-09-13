@@ -7,8 +7,12 @@ RUN_DIR="$ROOT/.telecodex/run"
 ENV_FILE="$ROOT/.telecodex.env"
 CODEX_WRAPPER="$ROOT/telecodex-bin/codex"
 
-export PATH="$ROOT/telecodex-bin:$HOME/.nvm/versions/node/v24.14.1/bin:/opt/homebrew/bin:$PATH"
-echo "runtime: node=$(command -v node) $(node --version 2>/dev/null || echo missing)"
+TELECODEX_ROOT="$ROOT"
+# shellcheck source=telecodex.runtime.sh
+. "$ROOT/telecodex.runtime.sh"
+telecodex_check_repo_location
+telecodex_prepare_runtime
+echo "runtime: node=$TELECODEX_NODE_BIN $("$TELECODEX_NODE_BIN" --version)"
 
 set -a
 if [ -f "$ENV_FILE" ]; then
@@ -25,20 +29,12 @@ fi
 mkdir -p "$RUN_DIR"
 SOCKET_PATH="${CODEX_APP_SERVER_SOCKET:-$RUN_DIR/app-server.sock}"
 
-if [ -S "$SOCKET_PATH" ]; then
-  if lsof -t -- "$SOCKET_PATH" >/dev/null 2>&1; then
-    echo "[codex-app-server] already listening at $SOCKET_PATH" >&2
-    exit 0
-  fi
-  case "$SOCKET_PATH" in
-    "$RUN_DIR"/*.sock) ;;
-    *)
-      echo "[codex-app-server] stale socket outside managed run dir: $SOCKET_PATH" >&2
-      exit 1
-      ;;
-  esac
-  rm -f -- "$SOCKET_PATH"
-  echo "[codex-app-server] removed stale socket $SOCKET_PATH" >&2
+set +e
+telecodex_clear_stale_socket codex-app-server "$SOCKET_PATH" "$RUN_DIR"
+socket_status=$?
+set -e
+if [ "$socket_status" -eq 2 ]; then
+  exit 0
 fi
 
 echo "[codex-app-server] listening at $SOCKET_PATH" >&2

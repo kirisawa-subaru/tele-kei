@@ -6,31 +6,47 @@ ROOT="$(cd "$(dirname "$0")" && pwd)"
 SOURCE_DIR="$ROOT/.vendor/telecodex"
 NPM_CACHE_DIR="${NPM_CONFIG_CACHE:-$ROOT/.telecodex/npm-cache}"
 TRIGGER_SCRIPT="$ROOT/telegram-active/scripts/bind-current-thread.mjs"
-TRIGGER_LINK="${TELEGRAM_ACTIVE_BIN:-/opt/homebrew/bin/telegram-active}"
+# Where to symlink the `telegram-active` CLI trigger. ~/.local/bin needs no
+# administrator rights on either macOS or Linux; override for any other PATH
+# directory you own.
+TRIGGER_LINK="${TELEGRAM_ACTIVE_BIN:-$HOME/.local/bin/telegram-active}"
 
-export NVM_DIR="${NVM_DIR:-$HOME/.nvm}"
-if [ -s "$NVM_DIR/nvm.sh" ]; then
-  # shellcheck disable=SC1091
-  . "$NVM_DIR/nvm.sh"
-fi
-export PATH="/opt/homebrew/bin:$HOME/.nvm/versions/node/v24.14.1/bin:$PATH"
+TELECODEX_ROOT="$ROOT"
+# shellcheck source=telecodex.runtime.sh
+. "$ROOT/telecodex.runtime.sh"
+telecodex_check_repo_location
+telecodex_prepare_runtime
 
 if [ ! -f "$SOURCE_DIR/package.json" ]; then
   echo "[telecodex] tracked source is missing at $SOURCE_DIR" >&2
   exit 1
 fi
 
+NPM_BIN="$(dirname "$TELECODEX_NODE_BIN")/npm"
+if [ ! -x "$NPM_BIN" ]; then
+  NPM_BIN="$(command -v npm || true)"
+fi
+if [ -z "$NPM_BIN" ]; then
+  echo "[telecodex] npm not found next to $TELECODEX_NODE_BIN or on PATH" >&2
+  exit 1
+fi
+
+echo "[telecodex] node $("$TELECODEX_NODE_BIN" --version) at $TELECODEX_NODE_BIN"
+
 mkdir -p "$NPM_CACHE_DIR"
 
 cd "$SOURCE_DIR"
-npm install --cache "$NPM_CACHE_DIR"
-npm run build
+"$NPM_BIN" install --cache "$NPM_CACHE_DIR"
+"$NPM_BIN" run build
 
 "$ROOT/telecodex.pin-codex.sh"
 
 if [ -f "$TRIGGER_SCRIPT" ]; then
   chmod 755 "$TRIGGER_SCRIPT"
   trigger_dir="$(dirname "$TRIGGER_LINK")"
+  if [ ! -d "$trigger_dir" ] && [ "$trigger_dir" = "$HOME/.local/bin" ]; then
+    mkdir -p "$trigger_dir"
+  fi
   if [ -L "$TRIGGER_LINK" ]; then
     if [ "$(readlink "$TRIGGER_LINK")" != "$TRIGGER_SCRIPT" ]; then
       echo "[telecodex] not replacing existing trigger symlink: $TRIGGER_LINK" >&2
@@ -40,8 +56,12 @@ if [ -f "$TRIGGER_SCRIPT" ]; then
   elif [ -d "$trigger_dir" ] && [ -w "$trigger_dir" ]; then
     ln -s "$TRIGGER_SCRIPT" "$TRIGGER_LINK"
     echo "Installed CLI trigger: $TRIGGER_LINK"
+    case ":${PATH:-}:" in
+      *":$trigger_dir:"*) ;;
+      *) echo "[telecodex] note: $trigger_dir is not on your PATH" >&2 ;;
+    esac
   else
-    echo "[telecodex] trigger directory is not writable; run with TELEGRAM_ACTIVE_BIN set to a writable PATH location" >&2
+    echo "[telecodex] trigger directory is not writable; rerun with TELEGRAM_ACTIVE_BIN set to a writable PATH location" >&2
   fi
 fi
 
