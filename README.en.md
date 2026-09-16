@@ -1,17 +1,20 @@
 # tele-kei
 
-Use the Codex CLI on your computer through Telegram and continue the same work from your phone or terminal.
+Keep Codex on your computer and your Telegram bot online together, continuing the same work from either side.
 
 [简体中文](README.md) · English
 
-## What it does
+## What this fork focuses on
 
-- **Continue the same conversation on phone and computer.** Pick up phone-side work in the terminal, or bind a terminal conversation to Telegram.
-- **Work with your files.** Send text, images or files; Codex uses your chosen workspace and sends results back to the chat.
-- **Keep working away from the terminal.** The bot runs in the background. Open the computer-side CLI when needed; tmux keeps its terminal session available to reattach.
-- **Manage conversations in Telegram.** Start a conversation, find history, switch models or check status from the chat.
+**Keep the desktop and bot online together, working in the same conversation.**
+Send messages from your phone without first closing the computer-side conversation. The Codex Desktop integration uses Codex's agent messaging mechanism to send phone messages into the conversation already open on the desktop. The CLI integration shares the same conversation service, keeping both sides on the same context.
 
-Supports **macOS and Linux**, including **Ubuntu on WSL2**. The computer running Codex must stay on and connected.
+**Make history, rollback and status useful on a phone.**
+Conversation browsing and controls have been reworked for Telegram: `/view` finds history and shows conversation details, `/past` catches up on computer-side messages, `/rewind` rolls back the conversation, and `/status` shows the current conversation, context usage and rate-limit status. These full conversation controls apply to the shared CLI mode.
+
+Sending retries and recovery of unfinished replies also help reduce interruptions from transient network failures when using the bot from a phone.
+
+Supports **macOS and Linux**, including **Ubuntu on WSL2**. Codex Desktop integration is currently macOS-only; Linux uses the CLI integration. The computer running Codex must stay on and connected.
 
 ## What you provide
 
