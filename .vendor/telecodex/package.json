@@ -1,5 +1,5 @@
 {
-  "name": "telecodex",
+  "name": "tele-kei",
   "version": "0.1.0",
   "description": "Telegram bridge with a shared Codex app-server, Core Router and per-bot workers",
   "license": "MIT",
@@ -41,5 +41,12 @@
     "typescript": "^5.9.3",
     "vitest": "^3.2.4"
   },
-  "private": true
+  "private": true,
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/kirisawa-subaru/tele-kei.git"
+  },
+  "contributors": [
+    "kirisawa-subaru"
+  ]
 }

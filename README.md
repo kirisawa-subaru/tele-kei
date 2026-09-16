@@ -1,8 +1,8 @@
-# TeleCodex
+# tele-kei
 
-A Telegram chat that is a front end to the [Codex](https://openai.com/codex/)
-CLI running on your own computer. Send a message from your phone, a Codex thread
-on your desktop picks it up, and the answer comes back in the chat — the same
+A Telegram bridge for [Codex](https://openai.com/codex/), maintained by
+[kirisawa-subaru](https://github.com/kirisawa-subaru), running on macOS and Linux.
+Send a message from your phone, a Codex thread on your desktop picks it up, and the answer comes back in the chat — the same
 thread you can attach to from the terminal, and the same session history.
 
 This is a hard fork of [`benedict2310/telecodex`](https://github.com/benedict2310/telecodex)
@@ -61,6 +61,13 @@ desktop CLI join the same thread without becoming a second one.
 
 ## Getting started
 
+Clone the source:
+
+```bash
+git clone https://github.com/kirisawa-subaru/tele-kei.git
+cd tele-kei
+```
+
 The intended audience already runs a coding agent. Open Codex CLI or Claude Code
 in this directory and say:
 
@@ -72,7 +79,7 @@ each before writing it down, and sets the bot's workspace.
 [`docs/setup-manifest.json`](docs/setup-manifest.json) is the same thing in
 machine-readable form.
 
-Doing it by hand is four commands:
+For manual setup:
 
 ```bash
 cp .telecodex.env.example .telecodex.env && chmod 600 .telecodex.env
@@ -95,6 +102,10 @@ This repository is distributed as a source checkout. The nested npm package
 is private; it is an implementation component, not an npm installation target.
 
 ## Repository layout
+
+The project is named `tele-kei`. Existing `telecodex.*` scripts,
+`TELECODEX_*` settings, service names and `.telecodex/` state paths are retained
+for deployment compatibility.
 
 | Path | What |
 | --- | --- |
@@ -123,7 +134,7 @@ of CI.
 
 ## Relationship to upstream
 
-TeleCodex began as [`benedict2310/telecodex`](https://github.com/benedict2310/telecodex)
+`tele-kei` is derived from [`benedict2310/telecodex`](https://github.com/benedict2310/telecodex)
 at commit `fd2a2413`. Merging from upstream was abandoned in August 2026; of 41
 source files, one is unmodified. It is a fork in the legal and historical sense,
 not a patch set — the provenance pointers exist for attribution and archaeology,
@@ -138,6 +149,5 @@ contract, are in
 MIT. See [`LICENSE`](LICENSE) — upstream's notice, unchanged:
 `Copyright (c) 2025 Benedict Evert`.
 
-<!-- TODO(maintainer): decide the fork's own copyright line and how it sits
-     alongside the upstream notice, then replace this comment with it.
-     Unresolved: do not publish before this is answered. -->
+This fork is maintained by [kirisawa-subaru](https://github.com/kirisawa-subaru).
+Upstream copyright and third-party notices are retained.

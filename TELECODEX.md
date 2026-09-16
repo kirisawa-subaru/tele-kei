@@ -1,4 +1,4 @@
-# TeleCodex deployment
+# tele-kei deployment
 
 This repo directly tracks the TeleCodex source used by the deployed bridge at
 `.vendor/telecodex/`. That tree is the source authority: edit it directly and

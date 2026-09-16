@@ -1,4 +1,4 @@
-# TeleCodex source
+# tele-kei source
 
 This directory is the maintained TypeScript source for the fork. The repository
 root owns installation, configuration and process supervision.

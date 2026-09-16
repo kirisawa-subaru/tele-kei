@@ -1,4 +1,4 @@
-# TeleCodex smoke tests
+# tele-kei smoke tests
 
 Playwright drives Telegram Web A (`web.telegram.org/a`) with your real account to
 exercise the live Core/worker path end to end: group addressing, text roundtrip,
