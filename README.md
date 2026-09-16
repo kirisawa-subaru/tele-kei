@@ -1,153 +1,136 @@
 # tele-kei
 
-A Telegram bridge for [Codex](https://openai.com/codex/), maintained by
-[kirisawa-subaru](https://github.com/kirisawa-subaru), running on macOS and Linux.
-Send a message from your phone, a Codex thread on your desktop picks it up, and the answer comes back in the chat — the same
-thread you can attach to from the terminal, and the same session history.
+在 Telegram 里使用自己电脑上的 Codex：发消息、收回复，让它帮你处理电脑里的文件。
+支持 **macOS 和 Linux**；Windows 用户请在 **WSL2 的 Ubuntu** 中操作。
 
-This is a hard fork of [`benedict2310/telecodex`](https://github.com/benedict2310/telecodex)
-(MIT), rebuilt around a single shared Codex writer, a process split, and a
-durable delivery ledger. See [Relationship to upstream](#relationship-to-upstream).
+简体中文 · [English](README.en.md)
 
-> **Read [`SECURITY.md`](SECURITY.md) before you run this.** A message in the
-> allowlisted chat is a prompt, and a prompt can read files, write files and run
-> commands on the host. A single list of numeric Telegram user ids is the only
-> authentication in the system.
+## 先准备好
 
-## What it does
+- 一台能连接 Telegram 和 Codex 的电脑。使用时电脑要保持开机、联网，不能睡眠。
+- [Git](https://git-scm.com/downloads/) 和 [Node.js](https://nodejs.org/en/download)（22 或 24，推荐 24 LTS）。安装 Node.js 时会一起安装 npm。
+- 一个能正常使用 Codex 的账号。Codex 本身会由安装脚本下载。
 
-- **One thread across phone and desktop.** `!telegram-active` in a Codex CLI
-  session binds that thread to the chat. `/past` catches the phone up on what
-  you did at the keyboard.
-- **Streams a turn as it happens** — typing indicator, incremental previews,
-  reconciled final message, with Telegram's flood control respected instead of
-  fought.
-- **Survives a restart.** Turn events are journaled before they are emitted;
-  final messages go through an outbox, so a crash mid-delivery resumes at the
-  first incomplete chunk instead of losing the answer.
-- **Several bots, one Core.** Each Telegram token gets its own worker process
-  and its own bot profile — workspace, model, developer instructions, and which
-  tools it may use.
-- **Files, images and block LaTeX** in both directions. Photos sent mid-turn are
-  injected into the running turn rather than rejected.
-- **Chat commands** for the things you would otherwise need a keyboard for:
-  `/new`, `/view`, `/attach`, `/rewind`, `/compact`, `/status`, `/handback`.
-
-## Architecture
-
-```text
-Telegram worker main ─┐
-Telegram worker ops  ─┼─ core.sock ─ Core Router ─ app-server.sock ─ codex app-server
-Telegram worker lab  ─┘                    │
-                                     state.sqlite
-```
-
-Workers own Telegram tokens, polling and delivery, and never speak to Codex.
-Core owns every Codex session, the `(botKey, chat/topic) -> thread` ledger and
-the control socket. One app-server is the single writer, which is what lets a
-desktop CLI join the same thread without becoming a second one.
-
-[`TELECODEX.md`](TELECODEX.md) is the operational reference.
-
-## Requirements
-
-- macOS or Linux, including WSL2. **Native Windows is not supported** — see
-  [`docs/platforms.md`](docs/platforms.md) for why, and for the three WSL2
-  details that will otherwise bite you.
-- Node 22 or newer. No native compilation.
-- The Codex CLI, installed into the checkout by the setup script, and a working
-  `codex login` (or an API key).
-- A Telegram bot token from [@BotFather](https://t.me/BotFather).
-
-## Getting started
-
-Clone the source:
+打开终端，确认下面三条命令都能显示版本号：
 
 ```bash
+git --version
+node --version
+npm --version
+```
+
+## 1. 创建自己的 Telegram 机器人
+
+1. 打开 [@BotFather](https://t.me/BotFather)，发送 `/newbot`，按提示起名，保存它给你的 **Token**。
+2. 打开 [@userinfobot](https://t.me/userinfobot)，发送 `/start`，记下你自己的数字 **Id**。
+
+Token 是机器人的密码，不要分享。Id 要填你自己的用户 ID，不是机器人的 ID，也不是 `@用户名`。
+
+## 2. 下载并填写配置
+
+以下安装步骤只需做一次。在终端依次运行：
+
+```bash
+cd ~
 git clone https://github.com/kirisawa-subaru/tele-kei.git
 cd tele-kei
+cp .telecodex.env.example .telecodex.env
+chmod 600 .telecodex.env
+nano .telecodex.env
 ```
 
-The intended audience already runs a coding agent. Open Codex CLI or Claude Code
-in this directory and say:
+找到下面两项，**去掉行首的 `#`**，把等号后的内容换成刚才拿到的值：
 
-> follow SETUP.md
+```ini
+TELEGRAM_BOT_TOKEN='你的Token'
+TELEGRAM_ALLOWED_USER_IDS=你的数字Id
+```
 
-[`SETUP.md`](SETUP.md) is written for the agent: it probes the host, asks you
-for the two credentials it cannot obtain by itself, explains the blast radius of
-each before writing it down, and sets the bot's workspace.
-[`docs/setup-manifest.json`](docs/setup-manifest.json) is the same thing in
-machine-readable form.
+其余配置保持默认。在 nano 中按 **Ctrl+O → 回车**保存，再按 **Ctrl+X**退出（Mac 也是 Ctrl，不是 Command）。
 
-For manual setup:
+WSL2 用户也用上面的 `cd ~`，把项目放在 Linux 的家目录里，不要放进 `/mnt/c/`。
+
+## 3. 给它一个工作文件夹
+
+先创建一个空文件夹供 Codex 使用。继续在 `tele-kei` 目录运行：
 
 ```bash
-cp .telecodex.env.example .telecodex.env && chmod 600 .telecodex.env
-# fill in TELEGRAM_BOT_TOKEN and TELEGRAM_ALLOWED_USER_IDS
+mkdir -p "$HOME/tele-kei-work" profiles/main
+cat > profiles/main/profile.json <<EOF
+{
+  "default_workspace": "$HOME/tele-kei-work"
+}
+EOF
+```
+
+之后把要处理的文件放进家目录下的 `tele-kei-work`。机器人可以在工作文件夹里修改文件和运行命令。
+想用已有项目时，把 `profiles/main/profile.json` 里的路径改成那个项目的完整路径。
+
+## 4. 安装并登录 Codex
+
+```bash
 ./telecodex.setup.sh
-./telecodex.app-server.start.sh   # then, in two more shells:
+./telecodex-bin/codex login status
+```
+
+第一次安装需要联网下载，请等它完成。如果提示尚未登录，运行下面这条，按提示完成登录：
+
+```bash
+./telecodex-bin/codex login
+```
+
+没有浏览器的 Linux 机器可用 `./telecodex-bin/codex login --device-auth`，在另一台设备按提示完成登录。
+
+## 5. 启动，然后去 Telegram 聊天
+
+打开 **三个终端窗口**，按顺序运行。每个窗口启动后保持打开，再去下一个窗口；有报错就先处理报错。
+
+**窗口 1：**
+
+```bash
+cd ~/tele-kei
+./telecodex.app-server.start.sh
+```
+
+**窗口 2：**
+
+```bash
+cd ~/tele-kei
 ./telecodex.core.start.sh
+```
+
+**窗口 3：**
+
+```bash
+cd ~/tele-kei
 ./telecodex.worker.start.sh main
 ```
 
-The env file loads before runtime discovery. Put optional Node/Codex paths
-there too; setup and the CLI wrappers use the same configuration. Only
-`CODEX_APPROVAL_POLICY=never` is supported because the bridge has no approval
-interaction.
+现在打开你刚创建的机器人，点 **Start / 开始**，发一句「你好」。收到回复就可以用了。
 
-For long-running installs, [`deploy/`](deploy/README.md) has parameterised
-systemd user units and launchd agents.
+常用命令直接发给机器人：
 
-This repository is distributed as a source checkout. The nested npm package
-is private; it is an implementation component, not an npm installation target.
-
-## Repository layout
-
-The project is named `tele-kei`. Existing `telecodex.*` scripts,
-`TELECODEX_*` settings, service names and `.telecodex/` state paths are retained
-for deployment compatibility.
-
-| Path | What |
+| 命令 | 用途 |
 | --- | --- |
-| `.vendor/telecodex/` | The TypeScript source. Edit it here; this is the fork's source of truth, not a vendored copy. |
-| `telecodex.*.sh` | Setup and the three start targets. All resolve Node and Codex through `telecodex.runtime.sh`. |
-| `telecodex-bin/` | `codex` (pinned CLI shim) and `telecodex-remote` (desktop entry to the shared app-server). |
-| `telegram-active/` | The Codex CLI trigger that binds the current thread to Telegram. |
-| `profiles/example/` | A commented bot profile: workspace, model, developer instructions, dynamic tools. |
-| `deploy/` | Supervisor templates for systemd and launchd. |
-| `smoke/` | Playwright end-to-end tests that drive Telegram Web against a live bridge. |
-| `tools/`, `CODEX_ANALYTICS.md` | Codex usage and rate-limit collectors. |
-| `.telecodex/` | Runtime state: sockets, the SQLite ledger, per-bot credentials. Never tracked. |
+| `/new` | 新开一段对话 |
+| `/status` | 看当前状态 |
+| `/model` | 选择模型 |
+| `/view` | 找回之前的对话 |
+| `/help` | 查看更多用法 |
 
-## Tests
+**停止：**依次在窗口 3、2、1 按 Ctrl+C。下次使用只需重复第 5 步，不用重新安装或填 Token。
 
-```bash
-cd .vendor/telecodex && npm ci && npm run build && npm test
-cd ../..
-node --test tools/*.test.mjs
-```
+## 遇到问题
 
-363 unit and integration tests. Two of them shell out to `rsvg-convert`, so
-install librsvg first if you want a clean run. The `smoke/` suite is separate:
-it needs a logged-in Telegram Web session and a live bridge, so it is not part
-of CI.
+- **提示找不到 Node / npm：**确认装的是 Node.js 22 或 24，重新打开终端，再运行开头的版本检查。
+- **机器人不回复：**先看三个窗口是否有报错，再检查 Token、自己的数字 Id，以及这台电脑的网络。
+- **提示未登录 Codex：**回到第 4 步登录，再重新启动。
 
-## Relationship to upstream
+想关掉终端后继续运行，可按需配置[后台启动](deploy/README.md)。如果希望让 coding agent 帮你配置，给它看 [SETUP.md](SETUP.md)。
 
-`tele-kei` is derived from [`benedict2310/telecodex`](https://github.com/benedict2310/telecodex)
-at commit `fd2a2413`. Merging from upstream was abandoned in August 2026; of 41
-source files, one is unmodified. It is a fork in the legal and historical sense,
-not a patch set — the provenance pointers exist for attribution and archaeology,
-not as an update path.
+## 来源与许可
 
-Third-party notices, including the MIT-licensed `telemood.plan.v1` interaction
-contract, are in
-[`.vendor/telecodex/THIRD_PARTY_NOTICES.md`](.vendor/telecodex/THIRD_PARTY_NOTICES.md).
+由 [kirisawa-subaru](https://github.com/kirisawa-subaru) 维护，基于 [TeleCodex](https://github.com/benedict2310/telecodex) 修改。
+采用 [MIT 许可证](LICENSE)，保留上游版权声明和[第三方声明](.vendor/telecodex/THIRD_PARTY_NOTICES.md)。
 
-## License
-
-MIT. See [`LICENSE`](LICENSE) — upstream's notice, unchanged:
-`Copyright (c) 2025 Benedict Evert`.
-
-This fork is maintained by [kirisawa-subaru](https://github.com/kirisawa-subaru).
-Upstream copyright and third-party notices are retained.
+更多配置见 [使用参考](TELECODEX.md)，权限说明见 [SECURITY.md](SECURITY.md)。
