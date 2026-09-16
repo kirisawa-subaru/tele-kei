@@ -9,9 +9,12 @@ telecodex.worker.start.sh <botKey>   one per Telegram token
 ```
 
 The app-server starts first and Core must be reachable before a worker starts.
-Nothing here is required — any supervisor works, and running the three scripts
-in three terminals is a legitimate deployment. These templates exist so you do
-not have to work out the restart semantics yourself.
+These templates provide the default installation described in [SETUP.md](../SETUP.md):
+the bot stays in the background while the desktop CLI is opened on demand in
+tmux. tmux holds the CLI frontend; it does not replace service supervision.
+Three foreground terminals are useful for diagnosis, not the default handoff.
+If the user explicitly prefers manual service start/stop, keep supervision but
+disable automatic startup and give them the exact commands.
 
 Both sets are parameterised. Render them for your checkout:
 

@@ -1,155 +1,42 @@
 # tele-kei
 
+Connect the Codex on your computer to Telegram and continue the same work from your phone or terminal.
+
 [简体中文](README.md) · English
-
-A Telegram bridge for [Codex](https://openai.com/codex/), maintained by
-[kirisawa-subaru](https://github.com/kirisawa-subaru), running on macOS and Linux.
-Send a message from your phone, a Codex thread on your desktop picks it up, and the answer comes back in the chat — the same
-thread you can attach to from the terminal, and the same session history.
-
-This is a hard fork of [`benedict2310/telecodex`](https://github.com/benedict2310/telecodex)
-(MIT), rebuilt around a single shared Codex writer, a process split, and a
-durable delivery ledger. See [Relationship to upstream](#relationship-to-upstream).
-
-> **Read [`SECURITY.md`](SECURITY.md) before you run this.** A message in the
-> allowlisted chat is a prompt, and a prompt can read files, write files and run
-> commands on the host. A single list of numeric Telegram user ids is the only
-> authentication in the system.
 
 ## What it does
 
-- **One thread across phone and desktop.** `!telegram-active` in a Codex CLI
-  session binds that thread to the chat. `/past` catches the phone up on what
-  you did at the keyboard.
-- **Streams a turn as it happens** — typing indicator, incremental previews,
-  reconciled final message, with Telegram's flood control respected instead of
-  fought.
-- **Survives a restart.** Turn events are journaled before they are emitted;
-  final messages go through an outbox, so a crash mid-delivery resumes at the
-  first incomplete chunk instead of losing the answer.
-- **Several bots, one Core.** Each Telegram token gets its own worker process
-  and its own bot profile — workspace, model, developer instructions, and which
-  tools it may use.
-- **Files, images and block LaTeX** in both directions. Photos sent mid-turn are
-  injected into the running turn rather than rejected.
-- **Chat commands** for the things you would otherwise need a keyboard for:
-  `/new`, `/view`, `/attach`, `/rewind`, `/compact`, `/status`, `/handback`.
+- **Continue the same conversation on phone and computer.** Pick up phone-side work in the terminal, or bind a terminal conversation to Telegram.
+- **Work with your files.** Send text, images or files; Codex uses your chosen workspace and sends results back to the chat.
+- **Keep working away from the terminal.** The bot runs in the background. Open the computer-side CLI when needed; tmux keeps its terminal session available to reattach.
+- **Manage conversations in Telegram.** Start a conversation, find history, switch models or check status from the chat.
 
-## Architecture
+Supports **macOS and Linux**, including **Ubuntu on WSL2**. The computer running Codex must stay on and connected.
 
-```text
-Telegram worker main ─┐
-Telegram worker ops  ─┼─ core.sock ─ Core Router ─ app-server.sock ─ codex app-server
-Telegram worker lab  ─┘                    │
-                                     state.sqlite
-```
+## What you provide
 
-Workers own Telegram tokens, polling and delivery, and never speak to Codex.
-Core owns every Codex session, the `(botKey, chat/topic) -> thread` ledger and
-the control socket. One app-server is the single writer, which is what lets a
-desktop CLI join the same thread without becoming a second one.
+Give this repository to a **coding agent running on the target computer**, such as Codex CLI or Claude Code. It handles dependencies and configuration. You provide:
 
-[`TELECODEX.md`](TELECODEX.md) is the operational reference.
-
-## Requirements
-
-- macOS or Linux, including WSL2. **Native Windows is not supported** — see
-  [`docs/platforms.md`](docs/platforms.md) for why, and for the three WSL2
-  details that will otherwise bite you.
-- Node 22 or newer. No native compilation.
-- The Codex CLI, installed into the checkout by the setup script, and a working
-  `codex login` (or an API key).
-- A Telegram bot token from [@BotFather](https://t.me/BotFather).
-
-## Getting started
-
-Clone the source:
-
-```bash
-git clone https://github.com/kirisawa-subaru/tele-kei.git
-cd tele-kei
-```
-
-The intended audience already runs a coding agent. Open Codex CLI or Claude Code
-in this directory and say:
-
-> follow SETUP.md
-
-[`SETUP.md`](SETUP.md) is written for the agent: it probes the host, asks you
-for the two credentials it cannot obtain by itself, explains the blast radius of
-each before writing it down, and sets the bot's workspace.
-[`docs/setup-manifest.json`](docs/setup-manifest.json) is the same thing in
-machine-readable form.
-
-For manual setup:
-
-```bash
-cp .telecodex.env.example .telecodex.env && chmod 600 .telecodex.env
-# fill in TELEGRAM_BOT_TOKEN and TELEGRAM_ALLOWED_USER_IDS
-./telecodex.setup.sh
-./telecodex.app-server.start.sh   # then, in two more shells:
-./telecodex.core.start.sh
-./telecodex.worker.start.sh main
-```
-
-The env file loads before runtime discovery. Put optional Node/Codex paths
-there too; setup and the CLI wrappers use the same configuration. Only
-`CODEX_APPROVAL_POLICY=never` is supported because the bridge has no approval
-interaction.
-
-For long-running installs, [`deploy/`](deploy/README.md) has parameterised
-systemd user units and launchd agents.
-
-This repository is distributed as a source checkout. The nested npm package
-is private; it is an implementation component, not an npm installation target.
-
-## Repository layout
-
-The project is named `tele-kei`. Existing `telecodex.*` scripts,
-`TELECODEX_*` settings, service names and `.telecodex/` state paths are retained
-for deployment compatibility.
-
-| Path | What |
+| Item | Where to get it |
 | --- | --- |
-| `.vendor/telecodex/` | The TypeScript source. Edit it here; this is the fork's source of truth, not a vendored copy. |
-| `telecodex.*.sh` | Setup and the three start targets. All resolve Node and Codex through `telecodex.runtime.sh`. |
-| `telecodex-bin/` | `codex` (pinned CLI shim) and `telecodex-remote` (desktop entry to the shared app-server). |
-| `telegram-active/` | The Codex CLI trigger that binds the current thread to Telegram. |
-| `profiles/example/` | A commented bot profile: workspace, model, developer instructions, dynamic tools. |
-| `deploy/` | Supervisor templates for systemd and launchd. |
-| `smoke/` | Playwright end-to-end tests that drive Telegram Web against a live bridge. |
-| `tools/`, `CODEX_ANALYTICS.md` | Codex usage and rate-limit collectors. |
-| `.telecodex/` | Runtime state: sockets, the SQLite ledger, per-bot credentials. Never tracked. |
+| Telegram bot token | Send `/newbot` to [@BotFather](https://t.me/BotFather) and follow the prompts |
+| Your numeric Telegram user ID | Send `/start` to [@userinfobot](https://t.me/userinfobot); use your own Id |
+| Workspace | Tell the agent which directory Codex should work in |
+| Codex login | Complete sign-in if requested; an existing login can be reused |
 
-## Tests
+The token is your bot's password. The bot invokes Codex to work with files and run commands under your account; use your own user ID in the allowlist.
 
-```bash
-cd .vendor/telecodex && npm ci && npm run build && npm test
-cd ../..
-node --test tools/*.test.mjs
-```
+Send this to your agent:
 
-363 unit and integration tests. Two of them shell out to `rsvg-convert`, so
-install librsvg first if you want a clean run. The `smoke/` suite is separate:
-it needs a logged-in Telegram Web session and a live bridge, so it is not part
-of CI.
+> Install https://github.com/kirisawa-subaru/tele-kei following SETUP.md. Set up a background bot and an on-demand tmux entry for opening and resuming the computer-side CLI. Ask me for the token, user ID, workspace or login when needed. Verify that phone and computer continue the same conversation, then tell me how to open, detach, stop and resume.
 
-## Relationship to upstream
+Once installed, chat with the bot on your phone or use the entry configured by the agent to open or reattach on your computer. **Detaching tmux leaves the bot running; sleeping or shutting down the host interrupts service.**
 
-`tele-kei` is derived from [`benedict2310/telecodex`](https://github.com/benedict2310/telecodex)
-at commit `fd2a2413`. Merging from upstream was abandoned in August 2026; of 41
-source files, one is unmodified. It is a fork in the legal and historical sense,
-not a patch set — the provenance pointers exist for attribution and archaeology,
-not as an update path.
+## For the installation agent
 
-Third-party notices, including the MIT-licensed `telemood.plan.v1` interaction
-contract, are in
-[`.vendor/telecodex/THIRD_PARTY_NOTICES.md`](.vendor/telecodex/THIRD_PARTY_NOTICES.md).
+Start with [SETUP.md](SETUP.md). Finish with working background services, a tmux entry, verified phone/terminal continuity and instructions for everyday start and stop.
 
-## License
+---
 
-MIT. See [`LICENSE`](LICENSE) — upstream's notice, unchanged:
-`Copyright (c) 2025 Benedict Evert`.
-
-This fork is maintained by [kirisawa-subaru](https://github.com/kirisawa-subaru).
-Upstream copyright and third-party notices are retained.
+Maintained by [kirisawa-subaru](https://github.com/kirisawa-subaru), derived from [TeleCodex](https://github.com/benedict2310/telecodex).
+[MIT license](LICENSE) · [Third-party notices](.vendor/telecodex/THIRD_PARTY_NOTICES.md) · [Security](SECURITY.md)

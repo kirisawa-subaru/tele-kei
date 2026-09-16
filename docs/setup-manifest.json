@@ -1,10 +1,16 @@
 {
   "schema": "telecodex.setup/1",
-  "description": "Machine-readable companion to SETUP.md. An agent can walk this top to bottom: probes, then secrets it must ask a human for, then steps, then checks.",
+  "description": "Agent installation companion to SETUP.md: background bot, on-demand tmux CLI, shared conversation verification, and everyday start/stop handoff.",
   "prose": "SETUP.md",
   "platforms": {
-    "supported": ["darwin", "linux", "wsl2"],
-    "unsupported": ["win32"],
+    "supported": [
+      "darwin",
+      "linux",
+      "wsl2"
+    ],
+    "unsupported": [
+      "win32"
+    ],
     "notes": "docs/platforms.md"
   },
   "agent_rules": [
@@ -13,7 +19,9 @@
     "Never edit a start script to add a Node or Codex path; use the documented environment overrides.",
     "Never widen CODEX_SANDBOX_MODE to unblock a failing command without asking the human first.",
     "Never run npm install -g.",
-    "Ask the human to run `codex login` themselves; it opens a browser."
+    "Ask the human to run `codex login` themselves; it opens a browser.",
+    "Default delivery includes background system services and an on-demand tmux entry to the same app-server; a first Telegram reply alone is not completion.",
+    "Reuse existing configuration and check service/command ownership before installing. Do not launch a duplicate worker for the same token."
   ],
   "probes": [
     {
@@ -44,6 +52,12 @@
       "fail": "npm is needed by telecodex.setup.sh and by the Codex pin."
     },
     {
+      "id": "tmux",
+      "run": "tmux -V",
+      "required": true,
+      "fail": "Install tmux on the bot host using its native package manager; use it for the CLI frontend, not as a substitute for bot service supervision."
+    },
+    {
       "id": "rsvg_convert",
       "run": "command -v rsvg-convert",
       "required": false,
@@ -70,7 +84,7 @@
       "obtain": "The human messages @BotFather on Telegram with /newbot and pastes the token back.",
       "validate": "^[0-9]{6,}:[A-Za-z0-9_-]{30,}$",
       "file": ".telecodex.env",
-      "blast_radius": "Holding this token means reading every message the chat has ever carried and posting as the bot. It does not by itself allow code execution: from.id cannot be forged, so the allowlist still stands."
+      "blast_radius": "Holding this token allows access to bot updates and posting as the bot. Keep it out of transcripts, logs and commits."
     },
     {
       "key": "TELEGRAM_ALLOWED_USER_IDS",
@@ -86,13 +100,19 @@
     {
       "key": "CODEX_SANDBOX_MODE",
       "default": "workspace-write",
-      "values": ["read-only", "workspace-write", "danger-full-access"],
+      "values": [
+        "read-only",
+        "workspace-write",
+        "danger-full-access"
+      ],
       "advice": "The only meaningful containment in the system. Do not widen it to unblock a command."
     },
     {
       "key": "CODEX_APPROVAL_POLICY",
       "default": "never",
-      "values": ["never"],
+      "values": [
+        "never"
+      ],
       "advice": "Only never is supported. Other values are rejected at startup; approval interaction must be implemented in a fork."
     },
     {
@@ -108,7 +128,10 @@
     {
       "key": "TELEGRAM_GROUP_TRIGGER_MODE",
       "default": "mention-or-reply",
-      "values": ["mention-or-reply", "all-authorized"],
+      "values": [
+        "mention-or-reply",
+        "all-authorized"
+      ],
       "advice": "all-authorized is not a bypass; it runs after the allowlist check."
     },
     {
@@ -131,16 +154,16 @@
   "steps": [
     {
       "id": "env_file",
-      "run": "cp .telecodex.env.example .telecodex.env && chmod 600 .telecodex.env",
-      "then": "Fill in the two values from secrets_from_human. Do not echo them.",
+      "run": "if [ ! -f .telecodex.env ]; then cp .telecodex.env.example .telecodex.env; fi; chmod 600 .telecodex.env",
+      "then": "Fill only missing credentials; preserve existing configuration. Do not echo secrets. Default BOT_KEY is main.",
       "verify": "test -f .telecodex.env && test \"$(stat -c '%a' .telecodex.env 2>/dev/null || stat -f '%Lp' .telecodex.env)\" = 600"
     },
     {
       "id": "workspace",
-      "optional": true,
-      "run": "mkdir -p profiles/$BOT_KEY",
-      "then": "Write profiles/$BOT_KEY/profile.json with default_workspace set to the directory the human named. Without it, the bot's workspace is this repository. See profiles/example/.",
-      "verify": "test ! -e profiles/$BOT_KEY/profile.json || node -e 'JSON.parse(require(\"fs\").readFileSync(process.argv[1],\"utf8\"))' profiles/$BOT_KEY/profile.json"
+      "optional": false,
+      "run": "mkdir -p profiles/main",
+      "then": "Write profiles/main/profile.json with the human-selected absolute default_workspace. Use the same workspace for the desktop CLI entry; do not assume the source checkout is the work directory.",
+      "verify": "node -e 'JSON.parse(require(\"fs\").readFileSync(\"profiles/main/profile.json\",\"utf8\"))'"
     },
     {
       "id": "install",
@@ -157,38 +180,49 @@
     {
       "id": "codex_login",
       "run": "./telecodex-bin/codex login status",
-      "on_failure": "Ask the human to run `codex login`. Do not drive the browser flow."
-    },
-    {
-      "id": "start",
-      "ordered": true,
-      "run": [
-        "./telecodex.app-server.start.sh",
-        "./telecodex.core.start.sh",
-        "./telecodex.worker.start.sh main"
-      ],
-      "then": "Three separate long-lived processes. Ask the human to message the bot; a reply means it works."
+      "on_failure": "Have the human complete ./telecodex-bin/codex login, or use login --device-auth on a headless host."
     },
     {
       "id": "supervise",
-      "optional": true,
-      "after": "start",
+      "optional": false,
+      "after": "codex_login",
       "run": "./deploy/render.sh --bot-key main",
-      "then": "Renders systemd user units or launchd agents into .telecodex/deploy/ and prints the install commands. It does not install or load anything."
+      "then": "Check ownership, execute the rendered installation commands, start app-server/Core/worker in order, and verify actual running services. Linux uses systemd user units (linger for logout survival); macOS uses launchd agents. Do not leave three foreground terminals as the installed result."
+    },
+    {
+      "id": "desktop_tmux",
+      "after": "supervise",
+      "optional": false,
+      "then": "Follow SETUP.md section 6 to configure a tele-kei shortcut using native tmux and telecodex-remote. Create/reattach one CLI session, use switch-client when already in tmux, pass the chosen workspace and resume --all, and share the bot app-server. Ensure telegram-active is on the service and CLI PATH."
+    },
+    {
+      "id": "daily_use_acceptance",
+      "after": "desktop_tmux",
+      "optional": false,
+      "then": "Verify a real Telegram reply, a real CLI turn followed by Telegram continuing that same content and thread, tmux detach/reattach, bot replies while detached, and controlled service stop/start. Record checks not performed; do not claim a machine reboot test without one."
+    },
+    {
+      "id": "handoff",
+      "after": "daily_use_acceptance",
+      "then": "Give the bot link, workspace, desktop entry, detach shortcut, worker-only pause/resume versus full-stack shutdown/restart commands (including the effect on CLI), reboot/login behavior and one log location. Keep the human handoff short."
     }
   ],
   "verify": [
     {
       "id": "build",
-      "run": "cd .vendor/telecodex && npm run build"
+      "run": "cd .vendor/telecodex && npm run build",
+      "optional": true,
+      "when": "Development changes or diagnosis require it; normal installation does not need a full development test run."
     },
     {
       "id": "tests",
-      "run": "cd .vendor/telecodex && npm test"
+      "run": "cd .vendor/telecodex && npm test",
+      "optional": true,
+      "when": "Development changes or diagnosis require it; normal installation does not need a full development test run."
     },
     {
       "id": "no_secrets_tracked",
-      "run": "git status --porcelain --ignored | grep -E '\\.telecodex\\.env$|^\\?\\? \\.telecodex/' >/dev/null; git ls-files | grep -E '\\.telecodex\\.env$' && echo LEAK || true"
+      "run": "tracked=\"$(git ls-files -- .telecodex.env .telecodex)\" || exit; test -z \"$tracked\""
     }
   ],
   "reference": {

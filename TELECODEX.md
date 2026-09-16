@@ -124,6 +124,12 @@ Why this shape:
 
 ## Desktop entry (`telecodex-remote`)
 
+The installation agent follows [SETUP.md](SETUP.md) to configure a `tele-kei`
+shortcut around this entry with native tmux. The bot remains supervised in the
+background; the shortcut opens or reattaches the CLI when needed. Detaching
+tmux leaves both the CLI session and the bot running. A host reboot ends the
+tmux process; start a new CLI and select the saved Codex conversation afterward.
+
 `telecodex-bin/telecodex-remote` is the desktop-side counterpart of the
 Telegram bridge: a frontend to the shared app-server, symlinked onto PATH. It
 pins the frozen Codex snapshot and the remote socket, so no path, socket, or
