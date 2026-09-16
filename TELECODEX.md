@@ -27,7 +27,7 @@ Why this shape:
 - `telecodex.app-server.start.sh` — start the single shared Codex writer
 - `telecodex.core.start.sh` — start the only process allowed to own Codex sessions
 - `telecodex.worker.start.sh <botKey>` — start one Telegram polling/delivery worker per token
-- `telecodex.start.sh` — legacy single-process entrypoint; not used by production launchd
+- `telecodex.start.sh` — legacy single-process entrypoint; not used by the supported three-process deployment
 - `.telecodex.env.example` — env template
 - `.vendor/telecodex/` — tracked TeleCodex source; dependencies, build output, and runtime state stay ignored
 - `.vendor/codex/` — ignored frozen Codex snapshot used by services
@@ -39,7 +39,21 @@ Why this shape:
 
 ## Setup
 
-1. Install dependencies, build the tracked source, and refresh the frozen Codex
+1. Create the repo-local env file and fill in the Telegram token and the
+   allowlist. Read `SECURITY.md` first — the allowlist is the only
+   authentication boundary in the system.
+
+   ```bash
+   cp .telecodex.env.example .telecodex.env
+   chmod 600 .telecodex.env
+   ```
+
+   Add any Node/Codex path overrides here before setup; all runtime shell
+   entrypoints and CLI wrappers read this file before resolving executables.
+   Only `CODEX_APPROVAL_POLICY=never` is supported. Approval interaction must
+   be implemented before another policy can be used.
+
+2. Install dependencies, build the tracked source, and refresh the frozen Codex
    snapshot:
 
    ```bash
@@ -91,15 +105,6 @@ Why this shape:
    ./telecodex.pin-codex.sh
    ```
 
-2. Create the repo-local env file and fill in the Telegram token and the
-   allowlist. Read `SECURITY.md` first — the allowlist is the only
-   authentication boundary in the system.
-
-   ```bash
-   cp .telecodex.env.example .telecodex.env
-   chmod 600 .telecodex.env
-   ```
-
 3. Start the shared app-server, Core Router, then a Telegram worker:
 
    ```bash
@@ -112,7 +117,7 @@ Why this shape:
    second writer:
 
    ```bash
-   codex --remote "unix://$PWD/.telecodex/run/app-server.sock"
+   ./telecodex-bin/codex --remote "unix://$PWD/.telecodex/run/app-server.sock"
    ```
 
    The everyday entry for this is `telecodex-remote` (see "Desktop entry").
@@ -149,7 +154,7 @@ TeleCodex can use your existing local Codex login.
 Current host status can be checked with:
 
 ```bash
-codex login status
+./telecodex-bin/codex login status
 ```
 
 `CODEX_API_KEY` is optional and only needed if you want API-key auth instead of

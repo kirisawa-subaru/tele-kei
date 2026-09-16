@@ -13,19 +13,6 @@ PID_DIR="$ROOT/.telecodex/run"
 PID_FILE="$PID_DIR/start.pid"
 CODEX_WRAPPER="$ROOT/telecodex-bin/codex"
 
-TELECODEX_ROOT="$ROOT"
-# shellcheck source=telecodex.runtime.sh
-. "$ROOT/telecodex.runtime.sh"
-telecodex_check_repo_location
-telecodex_prepare_runtime
-echo "runtime: node=$TELECODEX_NODE_BIN $("$TELECODEX_NODE_BIN" --version)"
-
-if [ ! -f "$SOURCE_DIR/dist/index.js" ]; then
-  echo "[telecodex] missing built TeleCodex runtime at $SOURCE_DIR/dist/index.js" >&2
-  echo "[telecodex] run ./telecodex.setup.sh first" >&2
-  exit 1
-fi
-
 set -a
 # Extra env files load first; the repo-local env file is loaded last and can
 # override any of their values.
@@ -42,11 +29,20 @@ if [ -n "$EXTRA_ENV_FILES" ]; then
 $(printf '%s\n' "$EXTRA_ENV_FILES" | tr ':' '\n')
 EOF
 fi
-if [ -f "$ENV_FILE" ]; then
-  # shellcheck disable=SC1090
-  . "$ENV_FILE"
-fi
 set +a
+
+TELECODEX_ROOT="$ROOT"
+# shellcheck source=telecodex.runtime.sh
+. "$ROOT/telecodex.runtime.sh"
+telecodex_check_repo_location
+telecodex_prepare_runtime
+echo "runtime: node=$TELECODEX_NODE_BIN $("$TELECODEX_NODE_BIN" --version)"
+
+if [ ! -f "$SOURCE_DIR/dist/index.js" ]; then
+  echo "[telecodex] missing built TeleCodex runtime at $SOURCE_DIR/dist/index.js" >&2
+  echo "[telecodex] run ./telecodex.setup.sh first" >&2
+  exit 1
+fi
 
 if [ ! -x "$CODEX_WRAPPER" ]; then
   echo "[telecodex] missing pinned Codex wrapper at $CODEX_WRAPPER" >&2
@@ -65,10 +61,10 @@ if [ -z "${TELEGRAM_BOT_TOKEN:-}" ] || [ -z "${TELEGRAM_ALLOWED_USER_IDS:-}" ]; 
 fi
 
 # Chat defaults: preserve conversation and hide executor telemetry. The sandbox
-# stays at the Codex default (workspace-write) and approvals stay on-request;
-# see SECURITY.md before widening either.
+# stays at workspace-write. Only never is supported: there is no approval UI.
+# See SECURITY.md for the execution boundary.
 export CODEX_SANDBOX_MODE="${CODEX_SANDBOX_MODE:-workspace-write}"
-export CODEX_APPROVAL_POLICY="${CODEX_APPROVAL_POLICY:-on-request}"
+export CODEX_APPROVAL_POLICY="${CODEX_APPROVAL_POLICY:-never}"
 export TOOL_VERBOSITY="${TOOL_VERBOSITY:-none}"
 export SHOW_TURN_TOKEN_USAGE="${SHOW_TURN_TOKEN_USAGE:-false}"
 export ENABLE_TELEGRAM_REACTIONS="${ENABLE_TELEGRAM_REACTIONS:-false}"

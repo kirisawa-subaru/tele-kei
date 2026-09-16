@@ -1,3 +1,8 @@
+> Historical upstream design, retained for reference. This fork is distributed
+> as a source checkout, its nested package is private, and it has no npm release
+> workflow. The account names and repository settings below belong to upstream;
+> they are not this fork's release configuration.
+
 # npm Trusted Publishing Playbook
 
 This document explains the release automation process used in TelePi and how to reuse it in TeleCodex.

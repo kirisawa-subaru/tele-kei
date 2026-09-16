@@ -23,6 +23,9 @@ while [ -L "$SELF" ]; do
   esac
 done
 ROOT="${TELECODEX_ROOT:-$(cd "$(dirname "$SELF")/.." && pwd)}"
+TELECODEX_ROOT="$ROOT"
+# shellcheck source=../telecodex.runtime.sh
+. "$ROOT/telecodex.runtime.sh"
 SOCK="${CODEX_APP_SERVER_SOCKET:-$ROOT/.telecodex/run/app-server.sock}"
 
 if [ ! -S "$SOCK" ]; then

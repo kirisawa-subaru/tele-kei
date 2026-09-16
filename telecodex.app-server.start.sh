@@ -4,7 +4,6 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")" && pwd)"
 RUN_DIR="$ROOT/.telecodex/run"
-ENV_FILE="$ROOT/.telecodex.env"
 CODEX_WRAPPER="$ROOT/telecodex-bin/codex"
 
 TELECODEX_ROOT="$ROOT"
@@ -13,13 +12,6 @@ TELECODEX_ROOT="$ROOT"
 telecodex_check_repo_location
 telecodex_prepare_runtime
 echo "runtime: node=$TELECODEX_NODE_BIN $("$TELECODEX_NODE_BIN" --version)"
-
-set -a
-if [ -f "$ENV_FILE" ]; then
-  # shellcheck disable=SC1090
-  . "$ENV_FILE"
-fi
-set +a
 
 if [ ! -x "$CODEX_WRAPPER" ]; then
   echo "[codex-app-server] missing pinned Codex wrapper at $CODEX_WRAPPER" >&2

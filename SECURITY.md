@@ -56,10 +56,10 @@ only meaningful containment in the system. Widening it to
 account can reach — SSH keys, browser profiles, cloud credentials, the rest of
 your home directory.
 
-`CODEX_APPROVAL_POLICY` defaults to `never`, and that default is deliberate:
-**this bridge has no approval UI.** There is no handler for an approval request
-anywhere in the codebase, so any value other than `never` stalls turns rather
-than gating them. Do not treat the approval policy as a safety control here.
+`CODEX_APPROVAL_POLICY=never` is the only supported policy. **This bridge has
+no approval interaction.** Configuration with any other value is rejected at
+startup. Supporting approvals requires implementing the request/response flow
+in a fork; changing an environment variable does not provide that interaction.
 Tighten `CODEX_SANDBOX_MODE` instead, and give the bot a workspace that does not
 contain anything you are unwilling to lose.
 

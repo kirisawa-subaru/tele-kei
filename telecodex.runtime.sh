@@ -38,6 +38,23 @@ export TELECODEX_ROOT
 # would leave every later function call with an empty root.
 TELECODEX_ROOT_DIR="$TELECODEX_ROOT"
 
+# Load this checkout's configuration before computing defaults or finding Node.
+# Child wrappers inherit the effective configuration (including worker-specific
+# overrides); re-sourcing the root file there would overwrite those overrides.
+telecodex_load_repo_config() {
+  [ "${TELECODEX_CONFIG_ROOT:-}" != "$TELECODEX_ROOT_DIR" ] || return 0
+  local restore_allexport=0
+  case $- in *a*) ;; *) restore_allexport=1 ;; esac
+  set -a
+  if [ -f "$TELECODEX_ROOT_DIR/.telecodex.env" ]; then
+    # shellcheck disable=SC1090
+    . "$TELECODEX_ROOT_DIR/.telecodex.env"
+  fi
+  if [ "$restore_allexport" -eq 1 ]; then set +a; fi
+  export TELECODEX_CONFIG_ROOT="$TELECODEX_ROOT_DIR"
+}
+telecodex_load_repo_config
+
 : "${TELECODEX_MIN_NODE_MAJOR:=22}"
 : "${TELECODEX_PINNED_CODEX_VERSION:=0.153.4}"
 : "${TELECODEX_PIN_ROOT:=$TELECODEX_ROOT_DIR/.vendor/codex}"

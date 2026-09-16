@@ -94,16 +94,21 @@ cp .telecodex.env.example .telecodex.env
 chmod 600 .telecodex.env
 ```
 
-Then fill in `TELEGRAM_BOT_TOKEN` and `TELEGRAM_ALLOWED_USER_IDS`. Every other
-key in the template has a working default and a comment explaining its blast
+Then fill in `TELEGRAM_BOT_TOKEN` and `TELEGRAM_ALLOWED_USER_IDS`. The env file
+uses shell assignment syntax; quote values containing spaces. It loads before
+runtime discovery in setup, service scripts, and the CLI wrappers. For workers,
+root settings load first and the instance env overrides them; additional bots
+need their own credentials. See [`docs/platforms.md`](docs/platforms.md).
+
+Every other key in the template has a working default and a comment explaining its blast
 radius; change one only if the human asks.
 
 Two you should *not* quietly widen:
 
 - `CODEX_SANDBOX_MODE` — `workspace-write` is the default and the only
   meaningful containment in the system.
-- `CODEX_APPROVAL_POLICY` — `never` is deliberate. There is no approval UI in
-  the bridge; any other value stalls turns rather than gating them.
+- `CODEX_APPROVAL_POLICY` — only `never` is supported. There is no approval
+  interaction in the bridge; other values are rejected at startup.
 
 Verify without printing secrets:
 

@@ -4,7 +4,6 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")" && pwd)"
 SOURCE_DIR="$ROOT/.vendor/telecodex"
-ENV_FILE="$ROOT/.telecodex.env"
 CODEX_WRAPPER="$ROOT/telecodex-bin/codex"
 RUN_DIR="$ROOT/.telecodex/run"
 
@@ -23,13 +22,6 @@ if [ ! -x "$CODEX_WRAPPER" ]; then
   exit 1
 fi
 
-set -a
-if [ -f "$ENV_FILE" ]; then
-  # shellcheck disable=SC1090
-  . "$ENV_FILE"
-fi
-set +a
-
 export CODEX_BACKEND="${CODEX_BACKEND:-app-server}"
 export CODEX_APP_SERVER_SOCKET="${CODEX_APP_SERVER_SOCKET:-$RUN_DIR/app-server.sock}"
 export TELECODEX_CORE_SOCKET="${TELECODEX_CORE_SOCKET:-$RUN_DIR/core.sock}"
@@ -37,7 +29,7 @@ export TELECODEX_CONTROL_SOCKET="${TELECODEX_CONTROL_SOCKET:-$RUN_DIR/control.so
 export CODEX_THREAD_IDLE_TIMEOUT_MS="${CODEX_THREAD_IDLE_TIMEOUT_MS:-3600000}"
 # Sandbox stays at the Codex default; see SECURITY.md before widening it.
 export CODEX_SANDBOX_MODE="${CODEX_SANDBOX_MODE:-workspace-write}"
-export CODEX_APPROVAL_POLICY="${CODEX_APPROVAL_POLICY:-on-request}"
+export CODEX_APPROVAL_POLICY="${CODEX_APPROVAL_POLICY:-never}"
 
 # A SIGKILL, crash, or host shutdown can leave filesystem socket nodes behind.
 # Node cannot bind over them, so remove only unowned sockets inside our private

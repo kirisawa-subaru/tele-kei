@@ -35,8 +35,19 @@ without the `.npmrc`, and succeeds with it.
 ## Runtime resolution
 
 Nothing in this repository hardcodes a Node or Codex path. `telecodex.runtime.sh`
-is sourced by every entrypoint and resolves both. Overrides, highest priority
-first:
+is sourced by each runtime entrypoint. It loads the checkout's
+`.telecodex.env` before computing defaults or resolving executables, including
+for setup, pinning, analytics and direct CLI calls. Use shell assignment syntax
+and quote paths containing spaces.
+
+Existing process variables supply initial values; the root env file overrides
+them, and a worker's `.telecodex/instances/<botKey>/bot.env` overrides the root.
+Only the primary worker (`main` by default) inherits root Telegram credentials.
+Additional workers use credentials from their instance env or from their own
+launch environment. Child CLI wrappers inherit this effective configuration,
+so they do not reload the root file over an instance override.
+
+Supported runtime settings:
 
 | Variable | Effect |
 | --- | --- |

@@ -4,7 +4,7 @@ import path from "node:path";
 export type ToolVerbosity = "all" | "summary" | "errors-only" | "none";
 export type CodexBackend = "sdk" | "app-server";
 export type CodexSandboxMode = "read-only" | "workspace-write" | "danger-full-access";
-export type CodexApprovalPolicy = "never" | "on-request" | "on-failure" | "untrusted";
+export type CodexApprovalPolicy = "never";
 export type TelegramGroupTriggerMode = "mention-or-reply" | "all-authorized";
 
 export interface TeleCodexConfig {
@@ -258,22 +258,13 @@ function isCodexSandboxMode(value: string): value is CodexSandboxMode {
 }
 
 function parseApprovalPolicy(raw: string | undefined): CodexApprovalPolicy {
-  if (!raw) {
-    return "never";
-  }
-
-  if (!isCodexApprovalPolicy(raw)) {
-    console.warn(
-      `Invalid CODEX_APPROVAL_POLICY value: "${raw}". Expected one of: never, on-request, on-failure, untrusted. Falling back to "never".`,
+  if (raw && raw !== "never") {
+    throw new Error(
+      "CODEX_APPROVAL_POLICY must be never: TeleCodex has no approval interaction. " +
+      "Other policies require an implementation of approval handling.",
     );
-    return "never";
   }
-
-  return raw;
-}
-
-function isCodexApprovalPolicy(value: string): value is CodexApprovalPolicy {
-  return value === "never" || value === "on-request" || value === "on-failure" || value === "untrusted";
+  return "never";
 }
 
 function parseToolVerbosity(raw: string | undefined): ToolVerbosity {

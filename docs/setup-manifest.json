@@ -92,8 +92,8 @@
     {
       "key": "CODEX_APPROVAL_POLICY",
       "default": "never",
-      "values": ["never", "on-request", "on-failure", "untrusted"],
-      "advice": "never is deliberate: the bridge has no approval UI, so any other value stalls turns instead of gating them."
+      "values": ["never"],
+      "advice": "Only never is supported. Other values are rejected at startup; approval interaction must be implemented in a fork."
     },
     {
       "key": "CODEX_BACKEND",
@@ -114,12 +114,12 @@
     {
       "key": "TELECODEX_NODE_BIN",
       "default": null,
-      "advice": "Set only when automatic Node resolution picks the wrong interpreter."
+      "advice": "Set in .telecodex.env when automatic Node resolution picks the wrong interpreter. Configuration loads before runtime discovery."
     },
     {
       "key": "TELECODEX_CODEX_BIN",
       "default": null,
-      "advice": "Set to an existing Codex CLI to skip the repo-local pin. Must be exported for every TeleCodex process, so put it in .telecodex.env."
+      "advice": "Set in .telecodex.env to use an existing Codex CLI. Setup, service scripts and direct CLI wrappers all read this file."
     },
     {
       "key": "CODEX_API_KEY",

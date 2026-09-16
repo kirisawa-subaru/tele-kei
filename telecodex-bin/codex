@@ -21,6 +21,10 @@ while [ -L "$SELF" ]; do
 done
 ROOT="${TELECODEX_ROOT:-$(cd "$(dirname "$SELF")/.." && pwd)}"
 
+TELECODEX_ROOT="$ROOT"
+# shellcheck source=../telecodex.runtime.sh
+. "$ROOT/telecodex.runtime.sh"
+
 if [ -n "${TELECODEX_CODEX_BIN:-}" ]; then
   if [ ! -x "$TELECODEX_CODEX_BIN" ]; then
     echo "[telecodex-codex] TELECODEX_CODEX_BIN is not an executable: $TELECODEX_CODEX_BIN" >&2
@@ -28,10 +32,6 @@ if [ -n "${TELECODEX_CODEX_BIN:-}" ]; then
   fi
   exec "$TELECODEX_CODEX_BIN" "$@"
 fi
-
-TELECODEX_ROOT="$ROOT"
-# shellcheck source=../telecodex.runtime.sh
-. "$ROOT/telecodex.runtime.sh"
 
 if ! CODEX_JS="$(telecodex_pin_codex_js)"; then
   echo "[telecodex-codex] no pinned Codex snapshot under $TELECODEX_PIN_ROOT" >&2

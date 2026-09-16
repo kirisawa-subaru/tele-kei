@@ -95,11 +95,11 @@ trusting PATH.
 
 ## Restart semantics worth knowing
 
-- Both templates restart on crash but **not** on a clean exit. The app-server
-  and core scripts exit 0 when something else already holds their socket;
-  restarting that in a loop would spin forever.
-- systemd units cap restarts at 5 per minute. A unit that hits the cap stays
-  down — check `systemctl --user status` rather than assuming it is running.
+- launchd restarts on failure and stops after a clean exit. The app-server
+  and Core scripts exit 0 when another process already holds their socket.
+- systemd uses `Restart=always`, including after a clean exit, with a limit of
+  5 starts per minute. A duplicate instance therefore reaches the limit and
+  stays down; inspect `systemctl --user status` to see why.
 - A worker refuses to start while another live worker holds the same Telegram
   token. Telegram allows exactly one polling consumer per token, so a stopped
   unit is the correct failure mode, not a duplicate poller.

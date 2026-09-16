@@ -4,18 +4,18 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")" && pwd)"
 SOURCE_DIR="$ROOT/.vendor/telecodex"
-NPM_CACHE_DIR="${NPM_CONFIG_CACHE:-$ROOT/.telecodex/npm-cache}"
 TRIGGER_SCRIPT="$ROOT/telegram-active/scripts/bind-current-thread.mjs"
 # Where to symlink the `telegram-active` CLI trigger. ~/.local/bin needs no
 # administrator rights on either macOS or Linux; override for any other PATH
 # directory you own.
-TRIGGER_LINK="${TELEGRAM_ACTIVE_BIN:-$HOME/.local/bin/telegram-active}"
 
 TELECODEX_ROOT="$ROOT"
 # shellcheck source=telecodex.runtime.sh
 . "$ROOT/telecodex.runtime.sh"
 telecodex_check_repo_location
 telecodex_prepare_runtime
+NPM_CACHE_DIR="${NPM_CONFIG_CACHE:-$ROOT/.telecodex/npm-cache}"
+TRIGGER_LINK="${TELEGRAM_ACTIVE_BIN:-$HOME/.local/bin/telegram-active}"
 
 if [ ! -f "$SOURCE_DIR/package.json" ]; then
   echo "[telecodex] tracked source is missing at $SOURCE_DIR" >&2

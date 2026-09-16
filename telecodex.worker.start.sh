@@ -5,10 +5,16 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "$0")" && pwd)"
 SOURCE_DIR="$ROOT/.vendor/telecodex"
 BOT_KEY="${1:-${TELECODEX_BOT_KEY:-}}"
-INSTANCE_ENV="$ROOT/.telecodex/instances/$BOT_KEY/bot.env"
-REPO_ENV="$ROOT/.telecodex.env"
-# The bot key that inherits .telecodex.env when it has no instance env of its
-# own. Every additional bot must carry its own untracked instance env.
+# Preserve credentials explicitly supplied by a supervisor or smoke harness.
+WORKER_BOT_TOKEN="${TELEGRAM_BOT_TOKEN:-}"
+WORKER_ALLOWED_USER_IDS="${TELEGRAM_ALLOWED_USER_IDS:-}"
+WORKER_ALLOWED_CHAT_IDS="${TELEGRAM_ALLOWED_CHAT_IDS:-}"
+TELECODEX_ROOT="$ROOT"
+# shellcheck source=telecodex.runtime.sh
+. "$ROOT/telecodex.runtime.sh"
+
+# Runtime settings are shared. Only the primary bot inherits root credentials;
+# additional bots use their instance env or explicitly supplied credentials.
 PRIMARY_BOT_KEY="${TELECODEX_PRIMARY_BOT_KEY:-main}"
 
 if [[ ! "$BOT_KEY" =~ ^[a-z][a-z0-9_-]{0,31}$ ]]; then
@@ -16,9 +22,20 @@ if [[ ! "$BOT_KEY" =~ ^[a-z][a-z0-9_-]{0,31}$ ]]; then
   exit 2
 fi
 
-TELECODEX_ROOT="$ROOT"
-# shellcheck source=telecodex.runtime.sh
-. "$ROOT/telecodex.runtime.sh"
+INSTANCE_ENV="$ROOT/.telecodex/instances/$BOT_KEY/bot.env"
+if [ "$BOT_KEY" != "$PRIMARY_BOT_KEY" ]; then
+  export TELEGRAM_BOT_TOKEN="$WORKER_BOT_TOKEN"
+  export TELEGRAM_ALLOWED_USER_IDS="$WORKER_ALLOWED_USER_IDS"
+  export TELEGRAM_ALLOWED_CHAT_IDS="$WORKER_ALLOWED_CHAT_IDS"
+fi
+unset WORKER_BOT_TOKEN WORKER_ALLOWED_USER_IDS WORKER_ALLOWED_CHAT_IDS
+set -a
+if [ -f "$INSTANCE_ENV" ]; then
+  # shellcheck disable=SC1090
+  . "$INSTANCE_ENV"
+fi
+set +a
+
 telecodex_check_repo_location
 telecodex_prepare_runtime
 
@@ -26,17 +43,6 @@ if [ ! -f "$SOURCE_DIR/dist/worker-index.js" ]; then
   echo "[telecodex-worker:$BOT_KEY] missing built runtime; run ./telecodex.setup.sh" >&2
   exit 1
 fi
-
-set -a
-if [ "$BOT_KEY" = "$PRIMARY_BOT_KEY" ]; then
-  # shellcheck disable=SC1090
-  if [ -f "$REPO_ENV" ]; then . "$REPO_ENV"; fi
-fi
-if [ -f "$INSTANCE_ENV" ]; then
-  # shellcheck disable=SC1090
-  . "$INSTANCE_ENV"
-fi
-set +a
 
 # Accept TELEGRAM_ALLOWED_CHAT_IDS as an alias: the worker authorizes Telegram
 # users, but existing deployments often store the same allowlist under the

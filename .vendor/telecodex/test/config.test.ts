@@ -60,7 +60,7 @@ describe("loadConfig", () => {
     process.env.CODEX_API_KEY = "secret-key";
     process.env.CODEX_MODEL = "o3";
     process.env.CODEX_SANDBOX_MODE = "danger-full-access";
-    process.env.CODEX_APPROVAL_POLICY = "on-request";
+    process.env.CODEX_APPROVAL_POLICY = "never";
     process.env.TOOL_VERBOSITY = "all";
 
     const config = loadConfig();
@@ -78,12 +78,22 @@ describe("loadConfig", () => {
       codexAppServerSocket: path.join(originalEnv.HOME ?? process.cwd(), ".codex", "app-server-control", "app-server-control.sock"),
       codexThreadIdleTimeoutMs: 60 * 60 * 1_000,
       codexSandboxMode: "danger-full-access",
-      codexApprovalPolicy: "on-request",
+      codexApprovalPolicy: "never",
       toolVerbosity: "all",
       showTurnTokenUsage: false,
       enableTelegramReactions: false,
     });
   });
+
+  it.each(["on-request", "on-failure", "untrusted", "sometimes"])(
+    "rejects unsupported approval policy %s before starting a turn",
+    (policy) => {
+      process.env.TELEGRAM_BOT_TOKEN = "bot-token";
+      process.env.TELEGRAM_ALLOWED_USER_IDS = "123";
+      process.env.CODEX_APPROVAL_POLICY = policy;
+      expect(() => loadConfig()).toThrow("CODEX_APPROVAL_POLICY must be never");
+    },
+  );
 
   it("applies default values for optional fields", () => {
     process.env.TELEGRAM_BOT_TOKEN = "bot-token";
@@ -167,7 +177,7 @@ describe("loadConfig", () => {
         "CODEX_API_KEY='from-dotenv'",
         'CODEX_MODEL="gpt-4.1"',
         "CODEX_SANDBOX_MODE=read-only",
-        "CODEX_APPROVAL_POLICY=on-failure",
+        "CODEX_APPROVAL_POLICY=never",
         'EXTRA_MULTILINE="hello\\nworld"',
       ].join("\n"),
     );
@@ -180,7 +190,7 @@ describe("loadConfig", () => {
     expect(config.codexApiKey).toBe("from-dotenv");
     expect(config.codexModel).toBe("gpt-4.1");
     expect(config.codexSandboxMode).toBe("read-only");
-    expect(config.codexApprovalPolicy).toBe("on-failure");
+    expect(config.codexApprovalPolicy).toBe("never");
     expect(process.env.EXTRA_MULTILINE).toBe("hello\nworld");
   });
 
@@ -257,7 +267,6 @@ describe("loadConfig", () => {
     process.env.TELEGRAM_BOT_TOKEN = "bot-token";
     process.env.TELEGRAM_ALLOWED_USER_IDS = "123";
     process.env.CODEX_SANDBOX_MODE = "unsafe";
-    process.env.CODEX_APPROVAL_POLICY = "sometimes";
     process.env.TOOL_VERBOSITY = "loud";
     process.env.MAX_FILE_SIZE = "nope";
 
@@ -267,7 +276,7 @@ describe("loadConfig", () => {
     expect(config.codexApprovalPolicy).toBe("never");
     expect(config.toolVerbosity).toBe("summary");
     expect(config.maxFileSize).toBe(20 * 1024 * 1024);
-    expect(warnSpy).toHaveBeenCalledTimes(4);
+    expect(warnSpy).toHaveBeenCalledTimes(3);
   });
 
 });

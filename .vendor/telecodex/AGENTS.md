@@ -1,17 +1,18 @@
 # Repository Guidelines
 
 ## Project Structure & Module Organization
-`src/` contains the runtime code for the Telegram bridge. The main entrypoint is `src/index.ts`, bot wiring lives in `src/bot.ts`, Codex session management is in `src/codex-session.ts`, config parsing is in `src/config.ts`, and Telegram-safe formatting is in `src/format.ts`.
+`src/` contains the runtime code for the Telegram bridge. The supported deployment uses `src/core-index.ts` and `src/worker-index.ts`, alongside a shared Codex app-server. `src/index.ts` is the legacy single-process entrypoint. Bot wiring lives in `src/bot.ts`, Codex sessions in `src/codex-session.ts`, and configuration in `src/config.ts`.
 
-`test/` mirrors the source layout with Vitest files such as `test/config.test.ts`. Build output goes to `dist/` and should not be committed. Runtime configuration is defined in `.env.example`; local secrets belong in `.env`.
+`test/` mirrors the source layout with Vitest files such as `test/config.test.ts`. Build output goes to `dist/` and should not be committed. Use the root `../../SETUP.md` for installation. Deployment configuration belongs in `../../.telecodex.env`, with additional bot credentials in `../../.telecodex/instances/<botKey>/bot.env`. The local `.env.example` is only for the legacy development entrypoint.
 
 ## Build, Test, and Development Commands
-Use Node.js 20+.
+Use Node.js 22+.
 
-- `npm install` installs project dependencies.
-- `npm run dev` starts TeleCodex with `tsx` against `src/index.ts`.
+- `npm ci` installs the locked project dependencies.
+- `npm run dev` starts the legacy single-process backend with `tsx`; use the root shell entrypoints for the supported deployment.
 - `npm run build` runs `tsc` and emits production files to `dist/`.
 - `npm test` runs the Vitest suite once.
+- From the repository root, `node --test tools/*.test.mjs` checks collectors and startup configuration. These tests use stub executables and never start live bots.
 
 ## Coding Style & Naming Conventions
 This repository uses strict TypeScript with ES modules. Follow the existing style: 2-space indentation, double quotes, semicolons, and explicit `.js` import specifiers in TypeScript source. Prefer small, focused modules and descriptive camelCase identifiers; use PascalCase for exported types and classes, such as `TeleCodexConfig` and `CodexSessionService`.
@@ -27,7 +28,7 @@ The current history uses short, descriptive commit subjects, for example: `Initi
 PRs should explain the behavior change, note any config impact, and link related issues when present. Include screenshots or Telegram message samples for UI or formatting changes.
 
 ## Security & Configuration Tips
-Do not commit `.env`, API keys, or Telegram tokens. Restrict `TELEGRAM_ALLOWED_USER_IDS` to trusted users, and default to `CODEX_SANDBOX_MODE=workspace-write` unless broader access is required.
+Do not commit `.telecodex.env`, `.env`, runtime state, API keys, or Telegram tokens. Only `CODEX_APPROVAL_POLICY=never` is supported; other values must fail configuration validation. Restrict `TELEGRAM_ALLOWED_USER_IDS` to trusted users, and default to `CODEX_SANDBOX_MODE=workspace-write` unless broader access is required.
 
 ## Release Automation
-TeleCodex does not yet ship with the TelePi npm release workflow, but the reusable Trusted Publishing setup has been documented in `docs/npm-trusted-publishing.md`. Use that playbook when wiring TeleCodex for npm publication and tag-driven GitHub Actions releases.
+This fork is distributed as a source checkout. The nested package is private and CI only builds and tests. `docs/npm-trusted-publishing.md` is historical upstream material, not a release procedure for this fork.
