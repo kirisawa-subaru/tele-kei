@@ -1,6 +1,6 @@
 # tele-kei
 
-Connect the Codex on your computer to Telegram and continue the same work from your phone or terminal.
+Use the Codex CLI on your computer through Telegram and continue the same work from your phone or terminal.
 
 [简体中文](README.md) · English
 
@@ -21,8 +21,8 @@ Give this repository to a **coding agent running on the target computer**, such 
 | --- | --- |
 | Telegram bot token | Send `/newbot` to [@BotFather](https://t.me/BotFather) and follow the prompts |
 | Your numeric Telegram user ID | Send `/start` to [@userinfobot](https://t.me/userinfobot); use your own Id |
-| Workspace | Tell the agent which directory Codex should work in |
-| Codex login | Complete sign-in if requested; an existing login can be reused |
+| Workspace | Choose an existing project or a new directory, as you would in Codex CLI |
+| Codex subscription account | Complete sign-in if requested; an existing login can be reused |
 
 The token is your bot's password. The bot invokes Codex to work with files and run commands under your account; use your own user ID in the allowlist.
 

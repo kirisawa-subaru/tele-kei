@@ -1,6 +1,6 @@
 # tele-kei
 
-把自己电脑上的 Codex 接到 Telegram，在手机和电脑之间继续同一段工作。
+在 Telegram 里使用自己电脑上的 Codex CLI，在手机和电脑之间继续同一段工作。
 
 简体中文 · [English](README.en.md)
 
@@ -21,8 +21,8 @@
 | --- | --- |
 | Telegram bot Token | 向 [@BotFather](https://t.me/BotFather) 发 `/newbot`，按提示创建机器人 |
 | 你的 Telegram 数字用户 ID | 向 [@userinfobot](https://t.me/userinfobot) 发 `/start`，记下自己的 Id |
-| 工作目录 | 告诉 agent 希望它处理哪个文件夹 |
-| Codex 登录 | 需要时按提示完成账号登录，已有登录可复用 |
+| 工作目录 | 选已有项目或新建文件夹，和在 Codex CLI 中选择工作路径一样 |
+| Codex 订阅账号 | 需要时按提示完成登录，已有登录可复用 |
 
 Token 是机器人的密码。bot 会以你的权限调用 Codex 处理文件和运行命令，用户 ID 请填你自己的。
 
