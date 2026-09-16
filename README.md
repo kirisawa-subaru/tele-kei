@@ -4,19 +4,19 @@
 
 简体中文 · [English](README.en.md)
 
-## 这个 fork 重点打磨了什么
+## ⭐️ Highlight
 
 **桌面端和 bot 同时在线，接着同一段对话工作。**
 不用先退出电脑端，手机就能接着已有对话发消息。Codex Desktop 接入复用了 Codex 的 agent 传话机制，把手机消息送进桌面上已打开的会话；CLI 接入则共享同一个会话服务，让两端沿用同一份上下文。
 
-**为手机打磨历史、回滚与状态操作。**
-针对 Telegram 重新打磨了会话浏览与操作：用 `/view` 找历史、看会话详情，`/past` 补看电脑端消息，`/rewind` 回滚对话，`/status` 查看当前会话、上下文用量和额度状态。这套完整操作适用于 CLI 共享会话模式。
+**为 Telegram 打磨历史、回滚与状态操作。**
+针对 Telegram 重新打磨了会话浏览与操作：用 `/view` 找历史、看会话详情，`/past` 补看电脑端消息，`/rewind` 回滚对话，`/status` 查看当前会话、上下文用量和额度状态。
 
-另外做了发送重试和未完成回复的补投，减少网络抖动造成的回复中断，照顾手机上的使用体验。
+另外做了发送重试和未完成回复的补投，减少网络抖动造成的回复中断，提升移动网络下的使用体验。
 
 支持 **macOS、Linux**，Windows 可用 **WSL2 Ubuntu**。Codex Desktop 接入目前限 macOS；Linux 使用 CLI 接入。运行 Codex 的电脑需要保持开机、联网。
 
-## 安装需要你提供什么
+## 需求
 
 把仓库链接交给**运行在目标电脑上的 coding agent**，例如 Codex CLI 或 Claude Code。依赖安装和配置由它处理，你只需要准备：
 
@@ -27,11 +27,12 @@
 | 工作目录 | 选已有项目或新建文件夹，和在 Codex CLI 中选择工作路径一样 |
 | Codex 订阅账号 | 需要时按提示完成登录，已有登录可复用 |
 
-Token 是机器人的密码。bot 会以你的权限调用 Codex 处理文件和运行命令，用户 ID 请填你自己的。
+Token 是 Telegram bot 的认证凭据。bot 会以你的权限调用 Codex 处理文件和运行命令，用户 ID 填 telegram 用户对应的ID。
+**请注意泄露 Telegram bot id + 用户ID等同于电脑完整访问权限泄露，请务必手动配置 bot Token 以保证安全！！**
 
 把下面这段话连同仓库链接发给 agent 即可：
 
-> 请按 https://github.com/kirisawa-subaru/tele-kei 的 SETUP.md 安装。配好后台 bot 和按需打开、恢复的 tmux 电脑端入口。需要 Token、用户 ID、工作目录或登录时再找我。验证手机和电脑能继续同一段对话，再告诉我怎么打开、离开、停止和恢复。
+> 请按 https://github.com/kirisawa-subaru/tele-kei 的 SETUP.md 安装。配好后台 bot 和按需打开、恢复的 tmux 电脑端入口。需要 Token、用户 ID、工作目录或登录时再找我。验证手机和电脑能继续同一段对话后提交。
 
 装好后，手机上直接找 bot 聊天；电脑上用 agent 配好的入口打开或恢复会话。**退出 tmux 的显示界面，bot 仍在后台工作；电脑睡眠或关机后无法继续服务。**
 
