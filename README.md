@@ -1,15 +1,15 @@
 # tele-kei
 
-在 Telegram 里使用自己电脑上的 Codex：发消息、收回复，让它帮你处理电脑里的文件。
+在 Telegram 里使用自己电脑上的 Codex：发消息、收回复，功能和cli相同。
 支持 **macOS 和 Linux**；Windows 用户请在 **WSL2 的 Ubuntu** 中操作。
 
 简体中文 · [English](README.en.md)
 
-## 先准备好
+## 准备
 
 - 一台能连接 Telegram 和 Codex 的电脑。使用时电脑要保持开机、联网，不能睡眠。
 - [Git](https://git-scm.com/downloads/) 和 [Node.js](https://nodejs.org/en/download)（22 或 24，推荐 24 LTS）。安装 Node.js 时会一起安装 npm。
-- 一个能正常使用 Codex 的账号。Codex 本身会由安装脚本下载。
+- Codex 订阅账号。Codex 本身会由安装脚本下载。
 
 打开终端，确认下面三条命令都能显示版本号：
 
@@ -50,9 +50,11 @@ TELEGRAM_ALLOWED_USER_IDS=你的数字Id
 
 WSL2 用户也用上面的 `cd ~`，把项目放在 Linux 的家目录里，不要放进 `/mnt/c/`。
 
-## 3. 给它一个工作文件夹
+## 3. 设置工作路径
 
-先创建一个空文件夹供 Codex 使用。继续在 `tele-kei` 目录运行：
+创建一个空文件夹或者选定已有的工作路径供 Codex 使用。
+本质上和 Codex 内选定工作文件夹相同。
+继续在 `tele-kei` 目录运行：
 
 ```bash
 mkdir -p "$HOME/tele-kei-work" profiles/main
@@ -73,7 +75,7 @@ EOF
 ./telecodex-bin/codex login status
 ```
 
-第一次安装需要联网下载，请等它完成。如果提示尚未登录，运行下面这条，按提示完成登录：
+第一次安装需要联网下载。如果提示尚未登录，运行下面命令，按提示完成登录：
 
 ```bash
 ./telecodex-bin/codex login
@@ -106,7 +108,7 @@ cd ~/tele-kei
 ./telecodex.worker.start.sh main
 ```
 
-现在打开你刚创建的机器人，点 **Start / 开始**，发一句「你好」。收到回复就可以用了。
+现在打开你刚创建的bot，点 **Start / 开始**，然后正常使用。
 
 常用命令直接发给机器人：
 
